@@ -3,7 +3,19 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+/** false quando as envs não foram configuradas (ex.: deploy sem variáveis) */
+export const supabaseConfigOk = Boolean(supabaseUrl && supabaseAnonKey)
+
+if (!supabaseConfigOk) {
+  console.error(
+    'Supabase não configurado: defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY nas variáveis de ambiente.'
+  )
+}
+
+// Cliente reserva só para não quebrar a importação; o App exibe aviso quando !supabaseConfigOk
+export const supabase = supabaseConfigOk
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createClient('https://missing-config.invalid', 'missing-key')
 
 export type Database = {
   public: {
