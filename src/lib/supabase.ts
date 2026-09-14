@@ -108,6 +108,9 @@ export type Database = {
           total: number
           archived: boolean
           created_by: string | null
+          pix_copy_paste: string | null
+          pix_txid: string | null
+          pix_expires_at: string | null
           created_at: string
         }
         Insert: {
@@ -122,6 +125,9 @@ export type Database = {
           total: number
           archived?: boolean
           created_by?: string | null
+          pix_copy_paste?: string | null
+          pix_txid?: string | null
+          pix_expires_at?: string | null
           created_at?: string
         }
         Update: {
@@ -136,7 +142,42 @@ export type Database = {
           total?: number
           archived?: boolean
           created_by?: string | null
+          pix_copy_paste?: string | null
+          pix_txid?: string | null
+          pix_expires_at?: string | null
           created_at?: string
+        }
+      }
+      pix_config: {
+        Row: {
+          id: string
+          key_type: 'cpf' | 'cnpj' | 'email' | 'telefone' | 'aleatoria'
+          pix_key: string
+          merchant_name: string
+          merchant_city: string
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          key_type: 'cpf' | 'cnpj' | 'email' | 'telefone' | 'aleatoria'
+          pix_key: string
+          merchant_name: string
+          merchant_city: string
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          key_type?: 'cpf' | 'cnpj' | 'email' | 'telefone' | 'aleatoria'
+          pix_key?: string
+          merchant_name?: string
+          merchant_city?: string
+          active?: boolean
+          created_at?: string
+          updated_at?: string
         }
       }
       order_items: {

@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils } from 'lucide-react'
+import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Modal from '../components/Modal'
+import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
 import { useCashRegister } from '../contexts/CashRegisterContext'
 import { formatCurrency, cn } from '../lib/utils'
+import { usePixConfig, buildPixPayload, defaultTxid } from '../lib/pix'
 import type { Database } from '../lib/supabase'
 
 type Product = Database['public']['Tables']['products']['Row']
@@ -28,6 +29,7 @@ function createOrderId() {
 
 export default function Menu() {
   const { isOpen: isCashRegisterOpen, loading: registerLoading } = useCashRegister()
+  const { config: pixConfig, loading: pixConfigLoading } = usePixConfig()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -36,14 +38,19 @@ export default function Menu() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Insert']['payment_method']>('pix')
+  const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Row']['payment_method']>('pix')
   const [submitting, setSubmitting] = useState(false)
+  const clientOrderIdRef = useRef<string | null>(null)
+
   const [clientOrder, setClientOrder] = useState<{
     id: string
     orderNumber: number
     status: Database['public']['Tables']['orders']['Row']['status']
     total: number
     items: { product_name: string; quantity: number }[]
+    paymentMethod: Database['public']['Tables']['orders']['Row']['payment_method']
+    paymentStatus: Database['public']['Tables']['orders']['Row']['payment_status']
+    pixPayload?: string
   } | null>(null)
 
   useEffect(() => {
@@ -54,7 +61,8 @@ export default function Menu() {
     const channel = supabase
       .channel('client-order-status')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
-        if (savedOrderId && payload.new.id === savedOrderId) loadClientOrder(savedOrderId)
+        const record = payload.new as { id?: string } | undefined
+        if (record?.id && record.id === clientOrderIdRef.current) loadClientOrder(record.id)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -63,17 +71,28 @@ export default function Menu() {
   async function loadClientOrder(orderId: string) {
     const { data } = await supabase
       .from('orders')
-      .select('id, order_number, status, archived, total, order_items(quantity, products(name))')
+      .select('id, order_number, status, archived, total, payment_method, payment_status, pix_copy_paste, order_items(quantity, products(name))')
       .eq('id', orderId)
       .maybeSingle()
     if (!data || data.archived || data.status === 'cancelado') {
+      clientOrderIdRef.current = null
       localStorage.removeItem('client-order-id')
       setClientOrder(null)
       return
     }
+    clientOrderIdRef.current = data.id
     const items = (data.order_items as unknown as { quantity: number; products: { name: string } | null }[])
       .map((item) => ({ product_name: item.products?.name || 'Item', quantity: item.quantity }))
-    setClientOrder({ id: data.id, orderNumber: data.order_number, status: data.status, total: data.total, items })
+    setClientOrder({
+      id: data.id,
+      orderNumber: data.order_number,
+      status: data.status,
+      total: data.total,
+      items,
+      paymentMethod: data.payment_method,
+      paymentStatus: data.payment_status,
+      pixPayload: data.pix_copy_paste ?? undefined,
+    })
   }
 
   async function cancelClientOrder() {
@@ -171,17 +190,57 @@ export default function Menu() {
       const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
       const orderId = createOrderId()
 
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          id: orderId,
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          total,
-          payment_method: paymentMethod,
-          payment_status: 'pendente',
-          status: 'pendente',
+      // Gera o payload Pix (BR Code) com o valor exato do pedido
+      let pixPayload: string | null = null
+      if (paymentMethod === 'pix') {
+        if (!pixConfig || !pixConfig.active) {
+          toast.error('Pagamento via Pix indisponível no momento: chave não configurada pela loja')
+          setSubmitting(false)
+          return
+        }
+        const result = buildPixPayload({
+          keyType: pixConfig.key_type,
+          pixKey: pixConfig.pix_key,
+          merchantName: pixConfig.merchant_name,
+          merchantCity: pixConfig.merchant_city,
+          amount: total,
+          txid: defaultTxid(orderId),
         })
+        if (!result.payload) {
+          toast.error(result.error || 'Não foi possível gerar o QR Code Pix')
+          setSubmitting(false)
+          return
+        }
+        pixPayload = result.payload
+      }
+
+      const insertData: {
+        id: string
+        customer_name: string
+        customer_phone: string
+        total: number
+        payment_method: typeof paymentMethod
+        payment_status: 'pendente'
+        status: 'pendente'
+        pix_copy_paste?: string
+        pix_txid?: string
+        pix_expires_at?: string
+      } = {
+        id: orderId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        total,
+        payment_method: paymentMethod,
+        payment_status: 'pendente',
+        status: 'pendente',
+      }
+      if (pixPayload) {
+        insertData.pix_copy_paste = pixPayload
+        insertData.pix_txid = defaultTxid(orderId)
+        insertData.pix_expires_at = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      }
+
+      const { error: orderError } = await supabase.from('orders').insert(insertData)
 
       if (orderError) throw orderError
 
@@ -199,7 +258,19 @@ export default function Menu() {
       toast.success('Pedido enviado com sucesso!', { icon: '🎉' })
       localStorage.setItem('client-order-id', orderId)
       const items = cart.map((item) => ({ product_name: item.product.name, quantity: item.quantity }))
-      setClientOrder({ id: orderId, orderNumber: 0, status: 'pendente', total, items })
+      clientOrderIdRef.current = orderId
+      setClientOrder({
+        id: orderId,
+        orderNumber: 0,
+        status: 'pendente',
+        total,
+        items,
+        paymentMethod,
+        paymentStatus: 'pendente',
+        pixPayload: pixPayload ?? undefined,
+      })
+      // Busca o nº do pedido no servidor e confirma o payload gravado
+      loadClientOrder(orderId)
       setCart([])
       setCustomerName('')
       setCustomerPhone('')
@@ -271,7 +342,10 @@ export default function Menu() {
                 </button>
               )}
             </div>
-            <div className="px-4 py-3 max-h-40 overflow-y-auto">
+            <div className={cn(
+              'px-4 py-3 overflow-y-auto',
+              clientOrder.paymentMethod === 'pix' && clientOrder.paymentStatus !== 'pago' ? 'max-h-[75vh]' : 'max-h-40'
+            )}>
               <div className="space-y-1.5">
                 {clientOrder.items.map((item, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
@@ -285,6 +359,26 @@ export default function Menu() {
                 <span className="text-sm font-bold text-slate-900">Total</span>
                 <span className="text-base font-bold text-amber-600">{formatCurrency(clientOrder.total)}</span>
               </div>
+
+              {clientOrder.paymentMethod === 'pix' && (
+                <div className="mt-3">
+                  {clientOrder.paymentStatus === 'pago' ? (
+                    <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 py-3 text-sm font-bold text-emerald-700">
+                      <ShieldCheck className="h-5 w-5" /> Pagamento Pix confirmado
+                    </div>
+                  ) : clientOrder.pixPayload ? (
+                    <PixQRCode
+                      payload={clientOrder.pixPayload}
+                      amount={clientOrder.total}
+                      orderId={clientOrder.id}
+                      paymentStatus="pendente"
+                      compact
+                    />
+                  ) : (
+                    <p className="text-center text-xs text-slate-500">Aguardando código de pagamento...</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -558,6 +652,12 @@ export default function Menu() {
                       </button>
                     ))}
                   </div>
+                  {pixConfigLoading && (
+                    <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
+                      <span className="animate-spin rounded-full h-3 w-3 border-2 border-amber-500 border-t-transparent" />
+                      Carregando configuração de pagamento...
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-1">

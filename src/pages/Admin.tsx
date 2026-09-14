@@ -1,23 +1,26 @@
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
-  Settings, Package, Tag, Users, Plus, Pencil, Trash2, X, Save,
-  ToggleLeft, ToggleRight, Eye, EyeOff
+  Settings, Package, Tag, Users, Plus, Pencil, Trash2, Save,
+  ToggleLeft, ToggleRight, Eye, EyeOff, QrCode, ShieldCheck
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
 import Modal from '../components/Modal'
+import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { formatCurrency, cn } from '../lib/utils'
+import { validatePixKey, normalizePixKey, buildPixPayload, PIX_KEY_TYPE_OPTIONS } from '../lib/pix'
+import type { PixKeyType, PixConfigRow } from '../lib/pix'
 import type { Database } from '../lib/supabase'
 
 type Product = Database['public']['Tables']['products']['Row']
 type Category = Database['public']['Tables']['categories']['Row']
 type Profile = Database['public']['Tables']['profiles']['Row']
 
-type Tab = 'products' | 'categories' | 'users'
+type Tab = 'products' | 'categories' | 'users' | 'pix'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrador',
@@ -64,21 +67,44 @@ export default function Admin() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null)
   const [editingRoles, setEditingRoles] = useState<string[]>([])
 
+  // Pix config
+  const [pixConfig, setPixConfig] = useState<PixConfigRow | null>(null)
+  const [pixForm, setPixForm] = useState<{ key_type: PixKeyType; pix_key: string; merchant_name: string; merchant_city: string }>({
+    key_type: 'cpf',
+    pix_key: '',
+    merchant_name: '',
+    merchant_city: '',
+  })
+  const [pixActive, setPixActive] = useState(true)
+  const [pixSaving, setPixSaving] = useState(false)
+
   useEffect(() => {
     fetchData()
   }, [])
 
   async function fetchData() {
     try {
-      const [productsRes, categoriesRes, profilesRes] = await Promise.all([
+      const [productsRes, categoriesRes, profilesRes, pixRes] = await Promise.all([
         supabase.from('products').select('*').order('name'),
         supabase.from('categories').select('*').order('name'),
         supabase.from('profiles').select('*').order('name'),
+        supabase.from('pix_config').select('*').order('created_at', { ascending: true }).limit(1).maybeSingle(),
       ])
 
       if (productsRes.data) setProducts(productsRes.data)
       if (categoriesRes.data) setCategories(categoriesRes.data)
       if (profilesRes.data) setProfiles(profilesRes.data)
+      if (pixRes.data) {
+        const saved = pixRes.data as PixConfigRow
+        setPixConfig(saved)
+        setPixForm({
+          key_type: saved.key_type,
+          pix_key: saved.pix_key,
+          merchant_name: saved.merchant_name,
+          merchant_city: saved.merchant_city,
+        })
+        setPixActive(saved.active)
+      }
     } catch (error) {
       console.error(error)
     } finally {
@@ -312,10 +338,76 @@ export default function Admin() {
     fetchData()
   }
 
+  // ===== PIX =====
+  async function savePix() {
+    const keyCheck = validatePixKey(pixForm.key_type, pixForm.pix_key)
+    if (!keyCheck.valid) {
+      toast.error(keyCheck.message || 'Chave Pix inválida')
+      return
+    }
+    if (!pixForm.merchant_name.trim()) {
+      toast.error('Informe o nome do beneficiário (recebedor)')
+      return
+    }
+    if (!pixForm.merchant_city.trim()) {
+      toast.error('Informe a cidade do beneficiário')
+      return
+    }
+
+    // Valida a geração do payload com um valor de teste antes de salvar
+    const test = buildPixPayload({
+      keyType: pixForm.key_type,
+      pixKey: pixForm.pix_key,
+      merchantName: pixForm.merchant_name,
+      merchantCity: pixForm.merchant_city,
+      amount: 0.01,
+    })
+    if (!test.payload) {
+      toast.error(test.error || 'Não foi possível gerar o payload Pix')
+      return
+    }
+
+    setPixSaving(true)
+    try {
+      const data = {
+        key_type: pixForm.key_type,
+        pix_key: normalizePixKey(pixForm.key_type, pixForm.pix_key),
+        merchant_name: pixForm.merchant_name.trim(),
+        merchant_city: pixForm.merchant_city.trim(),
+        active: pixActive,
+      }
+
+      if (pixConfig) {
+        const { error } = await supabase.from('pix_config').update(data).eq('id', pixConfig.id)
+        if (error) throw error
+        toast.success('Chave Pix atualizada!')
+      } else {
+        const { error } = await supabase.from('pix_config').insert(data)
+        if (error) throw error
+        toast.success('Chave Pix cadastrada!')
+      }
+      fetchData()
+    } catch (error) {
+      toast.error('Erro ao salvar a chave Pix')
+      console.error(error)
+    } finally {
+      setPixSaving(false)
+    }
+  }
+
+  const pixPreview = buildPixPayload({
+    keyType: pixForm.key_type,
+    pixKey: pixForm.pix_key,
+    merchantName: pixForm.merchant_name,
+    merchantCity: pixForm.merchant_city,
+    amount: 100,
+  })
+
   const tabs = [
     { key: 'products', label: 'Produtos', icon: <Package className="w-4 h-4" /> },
     { key: 'categories', label: 'Categorias', icon: <Tag className="w-4 h-4" /> },
     { key: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
+    { key: 'pix', label: 'Pix', icon: <QrCode className="w-4 h-4" /> },
   ] as const
 
   if (loading) {
@@ -535,6 +627,142 @@ export default function Admin() {
                 ))}
               </tbody>
             </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pix Tab */}
+      {activeTab === 'pix' && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900">Chave Pix do Estabelecimento</h2>
+              <span className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold',
+                pixActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+              )}>
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {pixActive ? 'Ativa' : 'Inativa'}
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-sm text-slate-500 mb-4">
+                Os QR Codes de pagamento são gerados automaticamente no PDV e no cardápio do cliente usando estes dados
+                (BR Code / EMV com valor dinâmico, sem necessidade de gateway).
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Tipo de Chave *</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {PIX_KEY_TYPE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setPixForm({ ...pixForm, key_type: option.value })}
+                        className={cn(
+                          'px-3 py-2 rounded-xl text-sm font-medium border transition-all',
+                          pixForm.key_type === option.value
+                            ? 'bg-amber-500 text-white border-amber-500'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300'
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Chave Pix *</label>
+                  <input
+                    type="text"
+                    value={pixForm.pix_key}
+                    onChange={(e) => setPixForm({ ...pixForm, pix_key: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500"
+                    placeholder={
+                      pixForm.key_type === 'email' ? 'ex: pagamentos@loja.com.br'
+                        : pixForm.key_type === 'telefone' ? 'ex: (11) 99999-9999'
+                        : pixForm.key_type === 'cpf' ? '000.000.000-00'
+                        : pixForm.key_type === 'cnpj' ? '00.000.000/0000-00'
+                        : 'chave aleatória fornecida pelo banco'
+                    }
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Nome do Beneficiário (Recebedor) *</label>
+                    <input
+                      type="text"
+                      value={pixForm.merchant_name}
+                      onChange={(e) => setPixForm({ ...pixForm, merchant_name: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500"
+                      placeholder="Nome da loja"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Cidade do Beneficiário *</label>
+                    <input
+                      type="text"
+                      value={pixForm.merchant_city}
+                      onChange={(e) => setPixForm({ ...pixForm, merchant_city: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500"
+                      placeholder="Sua cidade"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setPixActive(!pixActive)}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+                    pixActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                  )}
+                >
+                  {pixActive ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                  Cobranças Pix {pixActive ? 'habilitadas' : 'desabilitadas'}
+                </button>
+
+                {!pixActive && (
+                  <p className="text-xs text-slate-500">
+                    Com a opção desabilitada, os pedidos pelo cardápio e PDV seguem funcionando, mas o QR Code Pix não é apresentado.
+                  </p>
+                )}
+
+                <button
+                  onClick={savePix}
+                  disabled={pixSaving}
+                  className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {pixSaving ? 'Salvando...' : pixConfig ? 'Salvar Alterações' : 'Cadastrar Chave Pix'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Prévia do QR Code</h2>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              {pixPreview.payload ? (
+                <PixQRCode
+                  payload={pixPreview.payload}
+                  amount={100}
+                  showInstructions={false}
+                />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+                  <QrCode className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                  Preencha os dados da chave Pix para visualizar a prévia do QR Code.
+                </div>
+              )}
+              <p className="mt-3 text-xs text-slate-500">
+                Prévia gerada com o valor fixo de {formatCurrency(100)}. No PDV e no cardápio do cliente, o valor usado é o total exato do pedido.
+              </p>
             </div>
           </div>
         </div>

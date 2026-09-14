@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ClipboardList, Search, RefreshCw, XCircle, ChevronDown } from 'lucide-react'
+import { ClipboardList, Search, RefreshCw, XCircle, ChevronDown, QrCode, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
+import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { formatCurrency, formatDate, getPaymentMethodLabel, getStatusColor, getStatusLabel, cn } from '../lib/utils'
@@ -33,6 +34,7 @@ export default function MyOrders() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [pixOrderId, setPixOrderId] = useState<string | null>(null)
   const [missingColumn, setMissingColumn] = useState(false)
 
   useEffect(() => {
@@ -263,6 +265,43 @@ export default function MyOrders() {
                         </div>
                       ))}
                     </div>
+
+                    {order.payment_method === 'pix' && (
+                      <div className="mt-3">
+                        {order.payment_status === 'pago' ? (
+                          <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 py-3 text-sm font-bold text-emerald-700">
+                            <Check className="h-5 w-5" /> Pagamento Pix confirmado
+                          </div>
+                        ) : pixOrderId === order.id ? (
+                          <>
+                            <PixQRCode
+                              payload={order.pix_copy_paste || ''}
+                              amount={Number(order.total)}
+                              orderId={order.id}
+                              paymentStatus="pendente"
+                              compact
+                            />
+                            <button
+                              onClick={() => setPixOrderId(null)}
+                              className="mt-2 w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+                            >
+                              Ocultar QR Code
+                            </button>
+                          </>
+                        ) : order.pix_copy_paste ? (
+                          <button
+                            onClick={() => setPixOrderId(order.id)}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-50 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors"
+                          >
+                            <QrCode className="h-4 w-4" /> Exibir QR Code Pix
+                          </button>
+                        ) : (
+                          <p className="text-center text-xs text-slate-500">
+                            QR Code Pix não disponível para este pedido.
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {order.status === 'pendente' && (
                       <button

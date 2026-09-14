@@ -1,14 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, ChevronDown, Clock, Check, XCircle } from 'lucide-react'
+import {
+  Search, ShoppingCart, Plus, Minus, Trash2, Send, X, XCircle, QrCode
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
 import Modal from '../components/Modal'
 import CashierClosed from '../components/CashierClosed'
+import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useCashRegister } from '../contexts/CashRegisterContext'
 import { formatCurrency, cn } from '../lib/utils'
+import { usePixConfig, buildPixPayload, defaultTxid } from '../lib/pix'
 import type { Database } from '../lib/supabase'
 
 type Product = Database['public']['Tables']['products']['Row']
@@ -21,9 +25,26 @@ interface CartItem {
   notes: string
 }
 
+interface PixPayment {
+  orderId: string
+  orderNumber: number
+  amount: number
+  payload: string
+}
+
+function createOrderId() {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const random = Math.random() * 16 | 0
+    const value = character === 'x' ? random : (random & 0x3 | 0x8)
+    return value.toString(16)
+  })
+}
+
 export default function Orders() {
   const { profile, user } = useAuth()
   const { isOpen: isCashRegisterOpen, loading: registerLoading } = useCashRegister()
+  const { config: pixConfig, loading: pixConfigLoading } = usePixConfig()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -36,6 +57,7 @@ export default function Orders() {
   const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Insert']['payment_method']>('pix')
   const [submitting, setSubmitting] = useState(false)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
+  const [pixPayment, setPixPayment] = useState<PixPayment | null>(null)
 
   useEffect(() => {
     fetchCategories()
@@ -133,6 +155,19 @@ export default function Orders() {
   const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
+  const pixPreviewPayload = useMemo(() => {
+    if (paymentMethod !== 'pix' || cartTotal <= 0 || !pixConfig) return null
+    const result = buildPixPayload({
+      keyType: pixConfig.key_type,
+      pixKey: pixConfig.pix_key,
+      merchantName: pixConfig.merchant_name,
+      merchantCity: pixConfig.merchant_city,
+      amount: cartTotal,
+      txid: '***',
+    })
+    return result.payload
+  }, [paymentMethod, cartTotal, pixConfig])
+
   async function submitOrder() {
     if (!customerName.trim()) {
       toast.error('Informe o nome do cliente')
@@ -147,38 +182,66 @@ export default function Orders() {
     try {
       const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
       const authorId = user?.id ?? profile?.id ?? null
+      const orderId = createOrderId()
 
-      let order: { id: string } | null = null
+      // Gera o payload Pix (BR Code) ainda antes do envio, com o valor exato do pedido
+      let pixPayload: string | null = null
+      if (paymentMethod === 'pix') {
+        if (!pixConfig || !pixConfig.active) {
+          toast.error('Chave Pix não configurada no painel administrativo')
+          setSubmitting(false)
+          return
+        }
+        const result = buildPixPayload({
+          keyType: pixConfig.key_type,
+          pixKey: pixConfig.pix_key,
+          merchantName: pixConfig.merchant_name,
+          merchantCity: pixConfig.merchant_city,
+          amount: total,
+          txid: defaultTxid(orderId),
+        })
+        if (!result.payload) {
+          toast.error(result.error || 'Não foi possível gerar o QR Code Pix')
+          setSubmitting(false)
+          return
+        }
+        pixPayload = result.payload
+      }
+
+      const baseData = {
+        id: orderId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        table_or_address: tableOrAddress,
+        total,
+        payment_method: paymentMethod,
+        payment_status: 'pendente' as const,
+        status: 'pendente' as const,
+      }
+      const pixData = pixPayload
+        ? {
+            pix_copy_paste: pixPayload,
+            pix_txid: defaultTxid(orderId),
+            pix_expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+            created_by: authorId,
+          }
+        : { created_by: authorId }
+
+      let order: { id: string; order_number: number } | null = null
       const firstAttempt = await supabase
         .from('orders')
-        .insert({
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          table_or_address: tableOrAddress,
-          total,
-          payment_method: paymentMethod,
-          payment_status: 'pendente',
-          status: 'pendente',
-          created_by: authorId,
-        })
+        .insert({ ...baseData, ...pixData })
         .select()
         .single()
 
       if (firstAttempt.error) {
-        const missingColumn = String(firstAttempt.error.message || '').toLowerCase().includes('created_by')
+        const message = String(firstAttempt.error.message || '').toLowerCase()
+        const missingColumn = message.includes('created_by') || message.includes('pix_copy_paste')
         if (!missingColumn) throw firstAttempt.error
-        // Fallback para bancos ainda sem a migration de created_by
+        // Fallback para bancos sem as migrations mais recentes
         const retry = await supabase
           .from('orders')
-          .insert({
-            customer_name: customerName,
-            customer_phone: customerPhone,
-            table_or_address: tableOrAddress,
-            total,
-            payment_method: paymentMethod,
-            payment_status: 'pendente',
-            status: 'pendente',
-          })
+          .insert(baseData)
           .select()
           .single()
         if (retry.error) throw retry.error
@@ -201,6 +264,17 @@ export default function Orders() {
       if (itemsError) throw itemsError
 
       toast.success('Pedido enviado com sucesso!', { icon: '🔥' })
+
+      // Painel do atendente: abre o QR Code Pix para leitura pelo celular do cliente
+      if (paymentMethod === 'pix' && pixPayload) {
+        setPixPayment({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          amount: total,
+          payload: pixPayload,
+        })
+      }
+
       setCart([])
       setCustomerName('')
       setCustomerPhone('')
@@ -533,6 +607,25 @@ export default function Orders() {
                         </button>
                       ))}
                     </div>
+
+                    {pixConfigLoading ? (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-amber-500 border-t-transparent" />
+                        Carregando configuração Pix...
+                      </div>
+                    ) : paymentMethod === 'pix' && pixPreviewPayload ? (
+                      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                          <QrCode className="h-4 w-4 text-amber-500" />
+                          Prévia do QR Code Pix (atualizada com o valor do pedido)
+                        </div>
+                        <PixQRCode payload={pixPreviewPayload} amount={cartTotal} compact showInstructions={false} />
+                      </div>
+                    ) : paymentMethod === 'pix' ? (
+                      <p className="mt-3 text-xs text-crimson-500">
+                        Chave Pix não configurada. Peça ao administrador para cadastrá-la.
+                      </p>
+                    ) : null}
                   </div>
 
                    <div className="flex items-center justify-between border-t border-slate-100 pt-1 text-xl font-bold">
@@ -561,6 +654,22 @@ export default function Orders() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Pix Payment Modal */}
+      <Modal
+        isOpen={!!pixPayment}
+        onClose={() => setPixPayment(null)}
+        title={pixPayment ? `Pagamento Pix - Pedido #${pixPayment.orderNumber}` : ''}
+      >
+        {pixPayment && (
+          <PixQRCode
+            payload={pixPayment.payload}
+            amount={pixPayment.amount}
+            orderId={pixPayment.orderId}
+            paymentStatus="pendente"
+          />
+        )}
+      </Modal>
         </>
       )}
     </Layout>
