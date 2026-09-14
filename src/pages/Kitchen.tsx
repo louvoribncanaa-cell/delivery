@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, Check, Flame, Archive, XCircle, Volume2, VolumeX } from 'lucide-react'
+import { Clock, Check, Flame, Archive, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
@@ -26,7 +26,6 @@ const statusColumns = [
 export default function Kitchen() {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
-  const [soundOn, setSoundOn] = useState(false)
   const audioContextRef = useRef<AudioContext | null>(null)
   const fetchSequenceRef = useRef(0)
 
@@ -60,7 +59,6 @@ export default function Kitchen() {
   }, [])
 
   async function playNewOrderAlert() {
-    if (!soundOn) return
     try {
       const audioContext = getAudioContext()
       if (!audioContext) return
@@ -98,21 +96,6 @@ export default function Kitchen() {
     }
   }
 
-  async function toggleSound() {
-    const ctx = getAudioContext()
-    if (ctx) {
-      try {
-        await ctx.resume()
-      } catch {
-        // ignora
-      }
-    }
-    const running = getAudioContext()?.state === 'running'
-    setSoundOn(running)
-    if (running) {
-      await playNewOrderAlert()
-    }
-  }
 
   useEffect(() => {
     fetchOrders()
@@ -263,23 +246,7 @@ export default function Kitchen() {
 
   return (
     <Layout title="Cozinha">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-slate-900">Pedidos</h2>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={toggleSound}
-          title={soundOn ? 'Som ativado - clique para desativar' : 'Som desativado - clique para ativar'}
-          className={cn(
-            'flex items-center gap-2 rounded-xl px-4 py-2 text-white shadow-md transition-colors',
-            soundOn ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-slate-400 hover:bg-slate-500'
-          )}
-        >
-          {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          <span className="text-sm font-semibold">{soundOn ? 'Som on' : 'Som off'}</span>
-        </motion.button>
-      </div>
-
-      <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 h-[calc(100vh-180px)]">
+      <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 h-[calc(100vh-120px)]">
         {statusColumns.map((col) => {
           const colOrders = getOrdersForStatus(col.key)
           return (
