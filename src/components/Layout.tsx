@@ -95,7 +95,7 @@ export default function Layout({ children, title }: LayoutProps) {
               <Utensils className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-lg">Delivery</h1>
+              <h1 className="font-bold text-lg">Delivery Fast</h1>
               <p className="text-xs text-slate-400">{roleDescription}</p>
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function Layout({ children, title }: LayoutProps) {
           </button>
           <div className="flex items-center gap-2">
             <Utensils className="w-5 h-5 text-amber-500" />
-            <span className="font-bold">{title || 'Delivery'}</span>
+            <span className="font-bold">{title || 'Delivery Fast'}</span>
           </div>
         </div>
         <button onClick={handleSignOut} className="p-2 hover:bg-slate-800 rounded-xl transition-colors">
@@ -177,7 +177,7 @@ export default function Layout({ children, title }: LayoutProps) {
                   <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
                     <Utensils className="w-5 h-5 text-white" />
                   </div>
-                  <span className="font-bold text-lg">Delivery</span>
+                  <span className="font-bold text-lg">Delivery Fast</span>
                 </div>
                 <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-slate-800 rounded-xl">
                   <X className="w-5 h-5" />
@@ -211,7 +211,7 @@ export default function Layout({ children, title }: LayoutProps) {
         <div className="lg:hidden h-14" />
         <div className="hidden lg:flex h-20 items-center border-b border-slate-200/80 bg-white/80 px-8 backdrop-blur">
           <div className="w-full max-w-[1440px] mx-auto">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Delivery System</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Delivery Fast</p>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title || 'Visão geral'}</h1>
           </div>
         </div>

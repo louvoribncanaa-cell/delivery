@@ -61,7 +61,7 @@ export default function Login() {
             transition={{ delay: 0.3 }}
             className="text-3xl font-bold text-white tracking-tight"
           >
-            Delivery System
+            Delivery Fast
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
