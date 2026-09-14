@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { payload as generatePixPayload } from 'pix-payload'
 import { supabase } from './supabase'
 import type { Database } from './supabase'
 
@@ -34,7 +35,10 @@ export function normalizePixKey(keyType: PixKeyType, key: string): string {
     case 'cpf':
     case 'cnpj':
     case 'telefone':
-      return key.replace(/\D/g, '')
+      {
+        const digits = key.replace(/\D/g, '')
+        return digits.startsWith('55') ? `+${digits}` : `+55${digits}`
+      }
     case 'email':
       return key.trim().toLowerCase()
     case 'aleatoria':
@@ -62,7 +66,8 @@ export function validatePixKey(keyType: PixKeyType, rawKey: string): { valid: bo
       return { valid: true }
     }
     case 'telefone': {
-      if (!/^\d{10,13}$/.test(key)) return { valid: false, message: 'Telefone deve conter DDD + número (10 a 13 dígitos)' }
+      const digits = key.replace(/\D/g, '')
+      if (!/^\d{10,13}$/.test(digits)) return { valid: false, message: 'Telefone deve conter DDD + número (10 a 13 dígitos)' }
       return { valid: true }
     }
     case 'aleatoria':
@@ -141,23 +146,22 @@ export function buildPixPayload(input: BuildPixPayloadInput): BuildPixPayloadRes
   const city = sanitizeEmv(merchantCity).slice(0, 15) || 'BRASIL'
   const safeTxid = (txid || '***').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 25) || '***'
 
-  const merchantAccount = emv('00', 'BR.GOV.BCB.PIX') + emv('01', key)
-  const additionalData = emv('05', safeTxid)
-
-  let payload = ''
-  payload += emv('00', '01') // Payload Format Indicator
-  payload += emv('26', merchantAccount)
-  payload += emv('52', '0000') // Merchant Category Code
-  payload += emv('53', '986') // BRL
-  payload += emv('54', amountCheck.value) // Transaction Amount
-  payload += emv('58', 'BR') // Country
-  payload += emv('59', name) // Merchant Name
-  payload += emv('60', city) // Merchant City
-  payload += emv('62', additionalData) // Additional Data Field (txid)
-  payload += '6304' // CRC marker
-  payload += crc16ccitt(payload)
-
-  return { payload }
+  try {
+    // A biblioteca implementa o layout EMV/BR Code e o CRC16-CCITT do BACEN.
+    const payload = generatePixPayload({
+      key,
+      name,
+      city,
+      amount: Number(amountCheck.value),
+      transactionId: safeTxid,
+    })
+    return { payload }
+  } catch (error) {
+    return {
+      payload: null,
+      error: error instanceof Error ? error.message : 'Não foi possível gerar o payload Pix',
+    }
+  }
 }
 
 /** Gera um txid determinístico para um pedido (até 25 caracteres alfanuméricos). */
