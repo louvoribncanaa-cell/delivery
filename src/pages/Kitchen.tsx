@@ -49,9 +49,7 @@ export default function Kitchen() {
     function unlockAudio() {
       const ctx = getAudioContext()
       if (!ctx) return
-      void ctx.resume()
-        .then(() => setSoundOn(ctx.state === 'running'))
-        .catch(() => setSoundOn(false))
+      void ctx.resume().catch(() => {})
     }
     window.addEventListener('pointerdown', unlockAudio)
     window.addEventListener('keydown', unlockAudio)
@@ -62,24 +60,19 @@ export default function Kitchen() {
   }, [])
 
   async function playNewOrderAlert() {
+    if (!soundOn) return
     try {
       const audioContext = getAudioContext()
       if (!audioContext) return
 
-      // Garante contexto rodando ANTES de agendar as notas
       if (audioContext.state === 'suspended') {
         try {
           await audioContext.resume()
         } catch {
-          setSoundOn(false)
           return
         }
       }
-      if (audioContext.state !== 'running') {
-        setSoundOn(false)
-        return
-      }
-      setSoundOn(true)
+      if (audioContext.state !== 'running') return
 
       // Som de cogumelo do Mario: arpejo ascendente em onda quadrada
       const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0]
@@ -105,7 +98,7 @@ export default function Kitchen() {
     }
   }
 
-  async function testSound() {
+  async function toggleSound() {
     const ctx = getAudioContext()
     if (ctx) {
       try {
@@ -114,9 +107,11 @@ export default function Kitchen() {
         // ignora
       }
     }
-    await playNewOrderAlert()
     const running = getAudioContext()?.state === 'running'
-    toast.success(running ? 'Som ativado! 🍄' : 'Som bloqueado: toque novamente', { icon: running ? '🔊' : '🔇' })
+    setSoundOn(running)
+    if (running) {
+      await playNewOrderAlert()
+    }
   }
 
   useEffect(() => {
@@ -268,21 +263,23 @@ export default function Kitchen() {
 
   return (
     <Layout title="Cozinha">
-      {/* Botão de som: navegadores exigem um toque para liberar o áudio */}
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        onClick={testSound}
-        title={soundOn ? 'Som ativado' : 'Toque para ativar o som'}
-        className={cn(
-          'fixed bottom-4 left-3 z-40 flex items-center gap-2 rounded-2xl px-4 py-3 text-white shadow-xl transition-colors sm:bottom-6 sm:left-6',
-          soundOn ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-crimson-500 hover:bg-crimson-600 animate-pulse'
-        )}
-      >
-        {soundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-        <span className="text-sm font-semibold">{soundOn ? 'Som on' : 'Ativar som'}</span>
-      </motion.button>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-slate-900">Pedidos</h2>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={toggleSound}
+          title={soundOn ? 'Som ativado - clique para desativar' : 'Som desativado - clique para ativar'}
+          className={cn(
+            'flex items-center gap-2 rounded-xl px-4 py-2 text-white shadow-md transition-colors',
+            soundOn ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-slate-400 hover:bg-slate-500'
+          )}
+        >
+          {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          <span className="text-sm font-semibold">{soundOn ? 'Som on' : 'Som off'}</span>
+        </motion.button>
+      </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 h-[calc(100vh-120px)]">
+      <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 h-[calc(100vh-180px)]">
         {statusColumns.map((col) => {
           const colOrders = getOrdersForStatus(col.key)
           return (
