@@ -248,56 +248,82 @@ export default function Cashier() {
       </motion.div>
 
       {/* ── Financial Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 mb-6">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="rounded-2xl p-4 border flex items-center gap-3"
+          className="rounded-xl p-3 border flex items-center gap-2"
           style={{ background: 'linear-gradient(135deg, #e6f9f5, #d5f5ee)', borderColor: '#b8e8dc' }}
         >
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(20, 145, 130, 0.15)' }}>
-            <DollarSign className="w-5 h-5" style={{ color: '#14917a' }} />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(20, 145, 130, 0.15)' }}>
+            <DollarSign className="w-4 h-4" style={{ color: '#14917a' }} />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold truncate" style={{ color: '#0d7c67' }}>Recebido Hoje</p>
-            <p className="text-[18px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(totalPaid)}</p>
+            <p className="text-[10px] font-semibold truncate" style={{ color: '#0d7c67' }}>Recebido</p>
+            <p className="text-[14px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(totalPaid)}</p>
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="rounded-2xl p-4 border flex items-center gap-3"
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+          className="rounded-xl p-3 border flex items-center gap-2"
           style={{ background: 'linear-gradient(135deg, #fff0ed, #ffe4de)', borderColor: '#fdd' }}
         >
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(249, 112, 102, 0.15)' }}>
-            <Clock className="w-5 h-5" style={{ color: '#f97066' }} />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(249, 112, 102, 0.15)' }}>
+            <Clock className="w-4 h-4" style={{ color: '#f97066' }} />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold truncate" style={{ color: '#c0392b' }}>Pendente</p>
-            <p className="text-[18px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(totalPending)}</p>
+            <p className="text-[10px] font-semibold truncate" style={{ color: '#c0392b' }}>Pendente</p>
+            <p className="text-[14px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(totalPending)}</p>
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-          className="rounded-2xl p-4 border flex items-center gap-3"
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.11 }}
+          className="rounded-xl p-3 border flex items-center gap-2"
           style={{ background: 'linear-gradient(135deg, #e8f4fd, #d6ecfb)', borderColor: '#bddaf6' }}
         >
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(33, 150, 243, 0.15)' }}>
-            <Smartphone className="w-5 h-5" style={{ color: '#2196f3' }} />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(33, 150, 243, 0.15)' }}>
+            <Smartphone className="w-4 h-4" style={{ color: '#2196f3' }} />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold truncate" style={{ color: '#1565c0' }}>Pix</p>
-            <p className="text-[18px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(byPaymentMethod.pix || 0)}</p>
+            <p className="text-[10px] font-semibold truncate" style={{ color: '#1565c0' }}>Pix</p>
+            <p className="text-[14px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(byPaymentMethod.pix || 0)}</p>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}
+          className="rounded-xl p-3 border flex items-center gap-2"
+          style={{ background: 'linear-gradient(135deg, #f5f0ff, #ede5ff)', borderColor: '#ddd0f9' }}
+        >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(149, 97, 227, 0.15)' }}>
+            <Banknote className="w-4 h-4" style={{ color: '#9561e3' }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold truncate" style={{ color: '#6a1b9a' }}>Dinheiro</p>
+            <p className="text-[14px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(byPaymentMethod.dinheiro || 0)}</p>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}
+          className="rounded-xl p-3 border flex items-center gap-2"
+          style={{ background: 'linear-gradient(135deg, #e8f5e9, #d5f5d5)', borderColor: '#b8e6b8' }}
+        >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(76, 175, 80, 0.15)' }}>
+            <CreditCard className="w-4 h-4" style={{ color: '#4caf50' }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold truncate" style={{ color: '#2e7d32' }}>Crédito</p>
+            <p className="text-[14px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(byPaymentMethod.credito || 0)}</p>
           </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="rounded-2xl p-4 border flex items-center gap-3"
-          style={{ background: 'linear-gradient(135deg, #f5f0ff, #ede5ff)', borderColor: '#ddd0f9' }}
+          className="rounded-xl p-3 border flex items-center gap-2"
+          style={{ background: 'linear-gradient(135deg, #fff8e1, #ffecb3)', borderColor: '#f5e6a8' }}
         >
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(149, 97, 227, 0.15)' }}>
-            <Banknote className="w-5 h-5" style={{ color: '#9561e3' }} />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(255, 193, 7, 0.15)' }}>
+            <CreditCard className="w-4 h-4" style={{ color: '#ffc107' }} />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold truncate" style={{ color: '#6a1b9a' }}>Dinheiro</p>
-            <p className="text-[18px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(byPaymentMethod.dinheiro || 0)}</p>
+            <p className="text-[10px] font-semibold truncate" style={{ color: '#f57f17' }}>Débito</p>
+            <p className="text-[14px] font-extrabold text-slate-900 leading-tight truncate">{formatCurrency(byPaymentMethod.debito || 0)}</p>
           </div>
         </motion.div>
       </div>
