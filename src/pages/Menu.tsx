@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck, Package, Clock, ChefHat, CheckCircle, CreditCard, Banknote, QrCode } from 'lucide-react'
+import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck, Package, Clock, ChefHat, CheckCircle, CreditCard, Banknote, QrCode, MapPin, LocateFixed } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
@@ -38,6 +38,9 @@ export default function Menu() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
+  const [fulfillment, setFulfillment] = useState<'retirada' | 'entrega'>('retirada')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [locating, setLocating] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Row']['payment_method']>('pix')
   const [submitting, setSubmitting] = useState(false)
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false)
@@ -176,6 +179,26 @@ export default function Menu() {
   const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      toast.error('Seu navegador não oferece localização')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setDeliveryAddress(`Localização atual: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`)
+        setLocating(false)
+        toast.success('Localização adicionada')
+      },
+      () => {
+        setLocating(false)
+        toast.error('Não foi possível obter sua localização')
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
   async function submitOrder() {
     if (!isCashRegisterOpen) {
       toast.error('Abra o caixa para finalizar o pedido')
@@ -183,6 +206,10 @@ export default function Menu() {
     }
     if (!customerName.trim()) {
       toast.error('Informe seu nome')
+      return
+    }
+    if (fulfillment === 'entrega' && !deliveryAddress.trim()) {
+      toast.error('Informe o endereço de entrega')
       return
     }
     if (cart.length === 0) {
@@ -221,6 +248,7 @@ export default function Menu() {
         id: string
         customer_name: string
         customer_phone: string
+        table_or_address: string
         total: number
         payment_method: typeof paymentMethod
         payment_status: 'pendente'
@@ -232,6 +260,7 @@ export default function Menu() {
         id: orderId,
         customer_name: customerName,
         customer_phone: customerPhone,
+        table_or_address: fulfillment === 'retirada' ? 'Retirada no estabelecimento' : deliveryAddress.trim(),
         total,
         payment_method: paymentMethod,
         payment_status: 'pendente',
@@ -294,6 +323,8 @@ export default function Menu() {
       setCart([])
       setCustomerName('')
       setCustomerPhone('')
+      setDeliveryAddress('')
+      setFulfillment('retirada')
       setIsCartOpen(false)
       setIsOrderTrackingOpen(true)
     } catch (error) {
@@ -783,7 +814,28 @@ export default function Menu() {
                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 bg-slate-50 px-1 text-sm text-slate-400 transition-all peer-focus:top-0 peer-focus:text-xs peer-focus:text-amber-600 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-xs">Telefone *</span>
                  </label>
 
-                <div>
+                 <div>
+                   <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Como receber?</p>
+                   <div className="grid grid-cols-2 gap-2">
+                     <button type="button" onClick={() => setFulfillment('retirada')} className={cn('min-h-12 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2', fulfillment === 'retirada' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200')}>
+                       <ShoppingCart className="w-4 h-4" /> Retirada
+                     </button>
+                     <button type="button" onClick={() => setFulfillment('entrega')} className={cn('min-h-12 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2', fulfillment === 'entrega' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200')}>
+                       <MapPin className="w-4 h-4" /> Entrega
+                     </button>
+                   </div>
+                   {fulfillment === 'entrega' && (
+                     <div className="mt-3 space-y-2">
+                       <textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Digite o endereço completo da entrega *" rows={2} className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-teal-600 focus:outline-none" />
+                       <button type="button" onClick={useCurrentLocation} disabled={locating} className="min-h-12 w-full rounded-xl border border-teal-200 bg-teal-50 px-4 text-sm font-semibold text-teal-700 flex items-center justify-center gap-2 disabled:opacity-60">
+                         {locating ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-teal-600 border-t-transparent" /> : <LocateFixed className="w-4 h-4" />}
+                         {locating ? 'Obtendo localização...' : 'Usar minha localização atual'}
+                       </button>
+                     </div>
+                   )}
+                 </div>
+
+                 <div>
                   <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Forma de pagamento</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
