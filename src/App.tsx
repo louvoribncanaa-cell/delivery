@@ -70,7 +70,13 @@ function AppRoutes() {
 
       <Route path="/cashier" element={
         <ProtectedRoute allowedRoles={['caixa', 'admin']}>
-          <Cashier />
+          <Cashier dailyOnly />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/cash-management" element={
+        <ProtectedRoute allowedRoles={['caixa', 'admin']}>
+          <Cashier title="Gestão de Caixa" />
         </ProtectedRoute>
       } />
 

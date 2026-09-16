@@ -28,6 +28,7 @@ const navItems: Record<string, { to: string; icon: ReactNode; label: string }[]>
     { to: '/my-orders', icon: <Receipt className="w-[22px] h-[22px]" />, label: 'Meus Pedidos' },
     { to: '/kitchen', icon: <ChefHat className="w-[22px] h-[22px]" />, label: 'Cozinha' },
     { to: '/cashier', icon: <CreditCard className="w-[22px] h-[22px]" />, label: 'Caixa' },
+    { to: '/cash-management', icon: <CreditCard className="w-[22px] h-[22px]" />, label: 'Gestão de Caixa' },
     { to: '/history', icon: <History className="w-[22px] h-[22px]" />, label: 'Relatórios' },
   ],
   atendente: [
@@ -40,6 +41,7 @@ const navItems: Record<string, { to: string; icon: ReactNode; label: string }[]>
   ],
   caixa: [
     { to: '/cashier', icon: <CreditCard className="w-[22px] h-[22px]" />, label: 'Caixa' },
+    { to: '/cash-management', icon: <CreditCard className="w-[22px] h-[22px]" />, label: 'Gestão de Caixa' },
     { to: '/history', icon: <History className="w-[22px] h-[22px]" />, label: 'Relatórios' },
   ],
 }

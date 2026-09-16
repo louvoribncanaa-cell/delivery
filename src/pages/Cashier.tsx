@@ -64,7 +64,7 @@ function getWaitTime(createdAt: string) {
   return `${hrs}h ${mins % 60}min`
 }
 
-export default function Cashier() {
+export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyOnly?: boolean; title?: string }) {
   const { isOpen, currentRegister, openRegister, closeRegister } = useCashRegister()
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
@@ -171,10 +171,11 @@ export default function Cashier() {
   }
 
   const filteredOrders = orders.filter((o) => {
+    const matchesDay = !dailyOnly || new Date(o.created_at).toDateString() === new Date().toDateString()
     const matchesSearch = !search || o.customer_name.toLowerCase().includes(search.toLowerCase()) || o.order_number.toString().includes(search)
     const matchesStatus = !filterStatus || o.status === filterStatus
     const matchesPayment = !filterPayment || o.payment_status === filterPayment
-    return matchesSearch && matchesStatus && matchesPayment
+    return matchesDay && matchesSearch && matchesStatus && matchesPayment
   })
 
   const todayOrders = orders.filter((o) => new Date(o.created_at).toDateString() === new Date().toDateString())
@@ -189,7 +190,7 @@ export default function Cashier() {
 
   if (loading) {
     return (
-      <Layout title="Caixa">
+      <Layout title={title}>
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-transparent" style={{ borderColor: '#14917a', borderTopColor: 'transparent' }} />
         </div>
@@ -198,7 +199,7 @@ export default function Cashier() {
   }
 
   return (
-    <Layout title="Caixa">
+    <Layout title={title}>
       {/* ── Status Banner ── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -237,7 +238,7 @@ export default function Cashier() {
               )}
             </div>
           </div>
-          <div>
+          {!dailyOnly && <div>
             {isOpen ? (
               <motion.button
                 whileTap={{ scale: 0.96 }}
@@ -259,7 +260,7 @@ export default function Cashier() {
                 Abrir Caixa
               </motion.button>
             )}
-          </div>
+          </div>}
         </div>
       </motion.div>
 
@@ -344,6 +345,7 @@ export default function Cashier() {
         </motion.div>
       </div>
 
+      {!dailyOnly && <>
       {/* ── Turn Management Overview ── */}
       <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
         <div className="rounded-[22px] border border-slate-200/70 bg-white p-5 shadow-sm">
@@ -353,7 +355,7 @@ export default function Cashier() {
               <h3 className="mt-1 text-lg font-extrabold text-slate-900">Visão financeira</h3>
             </div>
             <div className="rounded-xl bg-teal-50 p-2.5 text-teal-700"><TrendingUp className="h-5 w-5" /></div>
-          </div>
+           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Faturamento bruto</p><p className="mt-1 text-lg font-extrabold text-slate-900">{formatCurrency(grossToday)}</p></div>
             <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Ticket médio</p><p className="mt-1 text-lg font-extrabold text-slate-900">{formatCurrency(averageTicket)}</p></div>
@@ -369,6 +371,7 @@ export default function Cashier() {
           {registerHistory.length === 0 ? <p className="py-5 text-sm text-slate-400">Nenhum fechamento registrado.</p> : <div className="space-y-2">{registerHistory.slice(0, 4).map((register) => <div key={register.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5"><span className="text-xs text-slate-500">{register.closed_at ? formatDate(register.closed_at) : 'Sem data'}</span><span className="text-sm font-bold text-slate-800">{formatCurrency(Number(register.final_amount || 0))}</span></div>)}</div>}
         </div>
       </section>
+      </>}
 
       {/* ── Filters ── */}
       <div className="mb-6 rounded-[22px] border border-slate-200/60 p-5" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}>
