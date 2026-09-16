@@ -382,20 +382,21 @@ export default function Menu() {
                className="fixed bottom-0 left-0 right-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md h-[90dvh] sm:h-auto sm:max-h-[90dvh] bg-white z-50 rounded-t-[24px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
             >
               {/* Header */}
-              <div className="shrink-0 px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50">
-                <div className="flex items-center justify-between">
+              <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 pb-5 pt-3">
+                <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-300" aria-hidden="true" />
+                <div className="flex min-h-[60px] items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
-                      <Package className="w-5 h-5 text-white" />
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500">
+                      <Package className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-slate-900">Pedido #{clientOrder.orderNumber || '...'}</h2>
+                      <h2 className="text-xl font-bold leading-tight text-slate-900">Pedido #{clientOrder.orderNumber || '...'}</h2>
                       <p className="text-xs text-slate-500">Acompanhe em tempo real</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setIsOrderTrackingOpen(false)}
-                    className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/70 transition-colors hover:bg-white"
                   >
                     <X className="w-5 h-5 text-slate-500" />
                   </button>
@@ -739,16 +740,23 @@ export default function Menu() {
              className="fixed bottom-0 left-0 right-0 h-[90dvh] bg-white z-50 rounded-t-[24px] flex flex-col shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 shrink-0">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-amber-500" />
-                 <h2 className="text-lg font-bold text-slate-900">Seu Pedido</h2>
+             <div className="shrink-0 border-b border-slate-200 bg-white px-5 pb-4 pt-3">
+               <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300" aria-hidden="true" />
+               <div className="flex min-h-[60px] items-center justify-between gap-3">
+                 <div className="flex min-w-0 items-center gap-3">
+                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-50">
+                     <ShoppingCart className="h-5 w-5 text-amber-500" />
+                   </div>
+                   <div>
+                     <h2 className="text-lg font-bold leading-tight text-slate-900">Seu Pedido</h2>
+                     <p className="text-sm font-extrabold text-amber-600">{formatCurrency(cartTotal)}</p>
+                   </div>
+                 </div>
+                 <button onClick={() => setIsCartOpen(false)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">
+                   <X className="w-5 h-5" />
+                 </button>
                </div>
-               <span className="mr-auto ml-3 text-sm font-extrabold text-amber-600">{formatCurrency(cartTotal)}</span>
-              <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+             </div>
 
             {/* Items */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
