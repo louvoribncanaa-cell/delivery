@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck, Package, Clock, ChefHat, CheckCircle } from 'lucide-react'
+import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck, Package, Clock, ChefHat, CheckCircle, CreditCard, Banknote, QrCode } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
@@ -48,7 +48,7 @@ export default function Menu() {
     orderNumber: number
     status: Database['public']['Tables']['orders']['Row']['status']
     total: number
-    items: { product_name: string; quantity: number }[]
+    items: { product_name: string; quantity: number; unit_price: number }[]
     paymentMethod: Database['public']['Tables']['orders']['Row']['payment_method']
     paymentStatus: Database['public']['Tables']['orders']['Row']['payment_status']
     pixPayload?: string
@@ -76,7 +76,7 @@ export default function Menu() {
   async function loadClientOrder(orderId: string) {
     const { data } = await supabase
       .from('orders')
-      .select('id, order_number, status, archived, total, payment_method, payment_status, pix_copy_paste, order_items(quantity, products(name))')
+       .select('id, order_number, status, archived, total, payment_method, payment_status, pix_copy_paste, order_items(quantity, unit_price, products(name))')
       .eq('id', orderId)
       .maybeSingle()
     if (!data || data.archived || data.status === 'cancelado') {
@@ -86,8 +86,8 @@ export default function Menu() {
       return
     }
     clientOrderIdRef.current = data.id
-    const items = (data.order_items as unknown as { quantity: number; products: { name: string } | null }[])
-      .map((item) => ({ product_name: item.products?.name || 'Item', quantity: item.quantity }))
+    const items = (data.order_items as unknown as { quantity: number; unit_price: number; products: { name: string } | null }[])
+      .map((item) => ({ product_name: item.products?.name || 'Item', quantity: item.quantity, unit_price: item.unit_price }))
     setClientOrder({
       id: data.id,
       orderNumber: data.order_number,
@@ -260,7 +260,7 @@ export default function Menu() {
 
       toast.success('Pedido enviado com sucesso!', { icon: '🎉' })
       localStorage.setItem('client-order-id', orderId)
-      const items = cart.map((item) => ({ product_name: item.product.name, quantity: item.quantity }))
+       const items = cart.map((item) => ({ product_name: item.product.name, quantity: item.quantity, unit_price: item.product.price }))
       clientOrderIdRef.current = orderId
       setClientOrder({
         id: orderId,
@@ -348,7 +348,7 @@ export default function Menu() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md sm:max-h-[85vh] bg-white z-50 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+               className="fixed bottom-0 left-0 right-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md h-[90dvh] sm:h-auto sm:max-h-[90dvh] bg-white z-50 rounded-t-[24px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
             >
               {/* Header */}
               <div className="shrink-0 px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50">
@@ -407,7 +407,7 @@ export default function Menu() {
                     )}>
                       <ChefHat className="w-5 h-5" />
                     </div>
-                    <span className="text-[10px] font-semibold text-slate-600 mt-1.5">Preparo</span>
+                       <span className="text-[10px] font-semibold text-slate-600 mt-1.5">Em Preparo</span>
                   </div>
 
                   <div className="flex flex-col items-center relative z-10">
@@ -443,13 +443,14 @@ export default function Menu() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Itens do Pedido</h3>
                   <div className="space-y-2">
                     {clientOrder.items.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
+                       <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 min-h-14">
                         <div className="flex items-center gap-3">
                           <span className="w-7 h-7 bg-amber-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
                             {item.quantity}x
                           </span>
-                          <span className="text-sm font-medium text-slate-700">{item.product_name}</span>
-                        </div>
+                           <span className="text-sm font-medium text-slate-700">{item.product_name}</span>
+                         </div>
+                         <span className="text-sm font-bold text-slate-800">{formatCurrency(item.unit_price * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
@@ -496,14 +497,14 @@ export default function Menu() {
                 {clientOrder.status === 'pendente' ? (
                   <button
                     onClick={cancelClientOrder}
-                    className="w-full py-3 bg-crimson-500 hover:bg-crimson-600 text-white font-semibold rounded-xl transition-colors"
+                     className="w-full min-h-12 bg-crimson-500 hover:bg-crimson-600 text-white font-semibold rounded-xl transition-colors"
                   >
                     Cancelar Pedido
                   </button>
                 ) : (
                   <button
                     onClick={() => setIsOrderTrackingOpen(false)}
-                    className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition-colors"
+                     className="w-full min-h-12 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition-colors"
                   >
                     Continuar Pedindo
                   </button>
@@ -704,14 +705,15 @@ export default function Menu() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 h-[92vh] bg-white z-50 rounded-t-3xl flex flex-col"
+             className="fixed bottom-0 left-0 right-0 h-[90dvh] bg-white z-50 rounded-t-[24px] flex flex-col shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 shrink-0">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-amber-500" />
-                <h2 className="text-lg font-bold text-slate-900">Seu Pedido</h2>
-              </div>
+                 <h2 className="text-lg font-bold text-slate-900">Seu Pedido</h2>
+               </div>
+               <span className="mr-auto ml-3 text-sm font-extrabold text-amber-600">{formatCurrency(cartTotal)}</span>
               <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl">
                 <X className="w-5 h-5" />
               </button>
@@ -772,41 +774,35 @@ export default function Menu() {
             {/* Bottom Form */}
             {cart.length > 0 && (
               <div className="shrink-0 border-t border-slate-200 bg-white px-5 py-4 space-y-3 safe-area-inset-bottom">
-                <input
-                  type="text"
-                  placeholder="Seu nome *"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500 placeholder-slate-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Telefone (opcional)"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500 placeholder-slate-400"
-                />
+                 <label className="relative block">
+                   <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder=" " className="peer w-full min-h-12 px-4 pt-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500" />
+                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 bg-slate-50 px-1 text-sm text-slate-400 transition-all peer-focus:top-0 peer-focus:text-xs peer-focus:text-amber-600 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-xs">Seu nome *</span>
+                 </label>
+                 <label className="relative block">
+                   <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder=" " className="peer w-full min-h-12 px-4 pt-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500" />
+                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 bg-slate-50 px-1 text-sm text-slate-400 transition-all peer-focus:top-0 peer-focus:text-xs peer-focus:text-amber-600 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-xs">Telefone *</span>
+                 </label>
 
                 <div>
                   <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Forma de pagamento</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { value: 'pix', label: 'Pix' },
-                      { value: 'cartao_credito', label: 'Cartão Crédito' },
-                      { value: 'cartao_debito', label: 'Cartão Débito' },
-                      { value: 'dinheiro', label: 'Dinheiro' },
+                       { value: 'pix', label: 'Pix', icon: QrCode },
+                       { value: 'cartao_credito', label: 'Cartão Crédito', icon: CreditCard },
+                       { value: 'cartao_debito', label: 'Cartão Débito', icon: CreditCard },
+                       { value: 'dinheiro', label: 'Dinheiro', icon: Banknote },
                     ].map((method) => (
                       <button
                         key={method.value}
                         onClick={() => setPaymentMethod(method.value as typeof paymentMethod)}
                         className={cn(
-                          'py-3 rounded-xl text-sm font-semibold transition-all border',
+                           'min-h-12 py-2 rounded-xl text-sm font-semibold transition-all border flex items-center justify-center gap-2',
                           paymentMethod === method.value
                             ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
                             : 'bg-white text-slate-600 border-slate-200 active:bg-slate-50'
                         )}
                       >
-                        {method.label}
+                         <method.icon className="w-4 h-4" /> {method.label}
                       </button>
                     ))}
                   </div>
