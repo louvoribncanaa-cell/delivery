@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, ChevronRight, Clock3, MapPin, PackageCheck, Phone, UserRound, X } from 'lucide-react'
+import { Check, ChevronRight, Clock3, ExternalLink, List, MapPin, PackageCheck, Phone, UserRound, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
@@ -8,6 +8,7 @@ import { formatCurrency } from '../lib/utils'
 import type { Database } from '../lib/supabase'
 
 type Order = Database['public']['Tables']['orders']['Row']
+type OrderItem = Database['public']['Tables']['order_items']['Row'] & { products: { name: string } | null }
 
 export default function Driver() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -15,6 +16,8 @@ export default function Driver() {
   const [finishing, setFinishing] = useState(false)
   const [finished, setFinished] = useState(false)
   const [slideValue, setSlideValue] = useState(0)
+  const [selectedItems, setSelectedItems] = useState<OrderItem[]>([])
+  const [itemsLoading, setItemsLoading] = useState(false)
 
   useEffect(() => {
     loadOrders()
@@ -33,6 +36,20 @@ export default function Driver() {
     setSelected(order)
     setFinished(false)
     setSlideValue(0)
+    setSelectedItems([])
+    setItemsLoading(true)
+    supabase.from('order_items').select('*, products(name)').eq('order_id', order.id).then(({ data }) => {
+      setSelectedItems((data as OrderItem[]) || [])
+      setItemsLoading(false)
+    })
+  }
+
+  function openMaps(address: string | null) {
+    if (!address?.trim()) {
+      toast.error('Este pedido não possui endereço informado')
+      return
+    }
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer')
   }
 
   async function finishOrder() {
@@ -88,7 +105,7 @@ export default function Driver() {
           <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28 }} onClick={(event) => event.stopPropagation()} className="absolute bottom-0 left-0 right-0 mx-auto max-h-[92dvh] max-w-2xl overflow-y-auto rounded-t-[2rem] bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl">
             <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-200" />
             <button onClick={() => setSelected(null)} disabled={finishing} className="absolute right-4 top-4 rounded-xl p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
-            {finished ? <div className="flex min-h-[330px] flex-col items-center justify-center text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><Check className="h-10 w-10" strokeWidth={3} /></motion.div><h3 className="text-xl font-black text-slate-900">Entrega concluída com sucesso!</h3><p className="mt-2 text-sm text-slate-500">O caixa foi atualizado automaticamente.</p></div> : <><div className="mb-6"><p className="text-xs font-bold uppercase tracking-widest text-[#14917a]">Detalhes da entrega</p><h3 className="mt-1 text-3xl font-black text-slate-950">#{selected.order_number}</h3></div><div className="space-y-3"><div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4"><UserRound className="h-5 w-5 text-[#14917a]" /><div><p className="text-xs text-slate-400">Cliente</p><p className="font-bold text-slate-800">{selected.customer_name}</p></div><a href={`tel:${selected.customer_phone}`} className="ml-auto rounded-xl bg-white p-3 text-[#14917a] shadow-sm"><Phone className="h-4 w-4" /></a></div><div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#14917a]" /><div><p className="text-xs text-slate-400">Endereço de entrega</p><p className="font-bold text-slate-800">{selected.table_or_address || 'Endereço não informado'}</p></div></div><div className="flex items-center justify-between rounded-2xl border border-slate-100 p-4"><span className="flex items-center gap-2 text-sm text-slate-500"><Clock3 className="h-4 w-4" /> Total do pedido</span><strong className="text-lg text-slate-900">{formatCurrency(Number(selected.total))}</strong></div></div><div className="mt-6"><p className="mb-3 text-center text-xs font-medium text-slate-400">Deslize para confirmar e evitar baixas acidentais</p><div className="relative h-14 overflow-hidden rounded-2xl bg-[#0c6f63]"><motion.div drag="x" dragConstraints={{ left: 0, right: 250 }} dragElastic={0} onDrag={(_, info) => setSlideValue(Math.max(0, Math.min(100, info.offset.x / 2.5)))} onDragEnd={(_, info) => { if (info.offset.x > 190) finishOrder(); else setSlideValue(0) }} className="absolute inset-y-1 left-1 z-10 flex w-16 cursor-grab items-center justify-center rounded-xl bg-white text-[#0c6f63] shadow-lg active:cursor-grabbing"><ChevronRight className="h-6 w-6" /></motion.div><div className="flex h-full items-center justify-center gap-2 text-sm font-bold text-white"><span style={{ opacity: 1 - slideValue / 130 }}>Deslize para finalizar</span></div></div><button onClick={finishOrder} disabled={finishing} className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#14917a] text-base font-black text-white shadow-lg shadow-[#14917a]/25 transition hover:bg-[#0d7c67] disabled:opacity-70">{finishing ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><PackageCheck className="h-5 w-5" /> Finalizar Entrega</>}</button></div></>}
+            {finished ? <div className="flex min-h-[330px] flex-col items-center justify-center text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><Check className="h-10 w-10" strokeWidth={3} /></motion.div><h3 className="text-xl font-black text-slate-900">Entrega concluída com sucesso!</h3><p className="mt-2 text-sm text-slate-500">O caixa foi atualizado automaticamente.</p></div> : <><div className="mb-6"><p className="text-xs font-bold uppercase tracking-widest text-[#14917a]">Detalhes da entrega</p><h3 className="mt-1 text-3xl font-black text-slate-950">#{selected.order_number}</h3></div><div className="space-y-3"><div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4"><UserRound className="h-5 w-5 text-[#14917a]" /><div><p className="text-xs text-slate-400">Cliente</p><p className="font-bold text-slate-800">{selected.customer_name}</p></div><a href={`tel:${selected.customer_phone}`} className="ml-auto rounded-xl bg-white p-3 text-[#14917a] shadow-sm"><Phone className="h-4 w-4" /></a></div><div className="rounded-2xl bg-slate-50 p-4"><div className="mb-3 flex items-center gap-2"><List className="h-5 w-5 text-[#14917a]" /><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Resumo do pedido</p></div>{itemsLoading ? <div className="h-12 animate-pulse rounded-xl bg-slate-200" /> : selectedItems.length > 0 ? <div className="space-y-2">{selectedItems.map((item) => <div key={item.id} className="flex items-center justify-between gap-3 text-sm"><span className="min-w-0 truncate text-slate-700"><strong className="mr-2 text-[#14917a]">{item.quantity}x</strong>{item.products?.name || 'Produto'}</span><span className="shrink-0 font-semibold text-slate-600">{formatCurrency(Number(item.unit_price) * item.quantity)}</span></div>)}</div> : <p className="text-sm text-slate-500">Itens não informados</p>}</div><div className="rounded-2xl bg-slate-50 p-4"><div className="flex items-start gap-3"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#14917a]" /><div className="min-w-0"><p className="text-xs text-slate-400">Endereço de entrega</p><p className="font-bold text-slate-800 break-words">{selected.table_or_address || 'Endereço não informado'}</p></div></div><button onClick={() => openMaps(selected.table_or_address)} disabled={!selected.table_or_address?.trim()} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0c6f63] px-4 text-sm font-bold text-white transition hover:bg-[#09594f] disabled:cursor-not-allowed disabled:opacity-50"><ExternalLink className="h-4 w-4" /> Abrir rota no Google Maps</button></div><div className="flex items-center justify-between rounded-2xl border border-slate-100 p-4"><span className="flex items-center gap-2 text-sm text-slate-500"><Clock3 className="h-4 w-4" /> Total do pedido</span><strong className="text-lg text-slate-900">{formatCurrency(Number(selected.total))}</strong></div></div><div className="mt-6"><p className="mb-3 text-center text-xs font-medium text-slate-400">Deslize para confirmar e evitar baixas acidentais</p><div className="relative h-14 overflow-hidden rounded-2xl bg-[#0c6f63]"><motion.div drag="x" dragConstraints={{ left: 0, right: 250 }} dragElastic={0} onDrag={(_, info) => setSlideValue(Math.max(0, Math.min(100, info.offset.x / 2.5)))} onDragEnd={(_, info) => { if (info.offset.x > 190) finishOrder(); else setSlideValue(0) }} className="absolute inset-y-1 left-1 z-10 flex w-16 cursor-grab items-center justify-center rounded-xl bg-white text-[#0c6f63] shadow-lg active:cursor-grabbing"><ChevronRight className="h-6 w-6" /></motion.div><div className="flex h-full items-center justify-center gap-2 text-sm font-bold text-white"><span style={{ opacity: 1 - slideValue / 130 }}>Deslize para finalizar</span></div></div><button onClick={finishOrder} disabled={finishing} className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#14917a] text-base font-black text-white shadow-lg shadow-[#14917a]/25 transition hover:bg-[#0d7c67] disabled:opacity-70">{finishing ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><PackageCheck className="h-5 w-5" /> Finalizar Entrega</>}</button></div></>}
           </motion.div>
         </motion.div>}
       </AnimatePresence>
