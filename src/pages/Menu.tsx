@@ -738,10 +738,10 @@ export default function Menu() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-             className="mobile-sheet-scale fixed bottom-0 left-0 right-0 h-[90dvh] bg-white z-50 rounded-t-[24px] flex flex-col shadow-2xl"
+             className="mobile-sheet-scale safe-screen-padding fixed bottom-4 left-4 right-4 h-[calc(90dvh-1rem)] bg-white z-50 rounded-t-[24px] flex flex-col pb-[env(safe-area-inset-bottom)] shadow-2xl sm:bottom-0 sm:left-0 sm:right-0 sm:h-[90dvh]"
           >
             {/* Header */}
-             <div className="shrink-0 border-b border-slate-200 bg-white px-5 pb-4 pt-3">
+             <div className="shrink-0 border-b border-slate-200 bg-white px-5 pb-5 pt-5">
                <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300" aria-hidden="true" />
                <div className="flex min-h-[64px] items-center justify-between gap-3">
                  <div className="flex min-w-0 items-center gap-3">
@@ -760,7 +760,7 @@ export default function Menu() {
              </div>
 
             {/* Items */}
-             <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-3">
+              <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-4">
               {cart.length === 0 ? (
                 <div className="text-center py-16 text-slate-400">
                   <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
