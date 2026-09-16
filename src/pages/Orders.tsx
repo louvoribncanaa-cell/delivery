@@ -358,54 +358,55 @@ export default function Orders() {
             </div>
           </div>
 
-          {/* Products Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {/* Products List */}
+          <div className="space-y-3">
             {filteredProducts.map((product) => {
               const cartItem = cart.find((c) => c.product.id === product.id)
               return (
                 <motion.div
                   key={product.id}
                   layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex gap-4"
                 >
-                  <div className="aspect-square bg-slate-100 flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
                     {product.image_url ? (
                       <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="text-4xl">🍔</div>
+                      <span className="text-3xl">🍔</span>
                     )}
                   </div>
-                  <div className="p-3">
-                    <h3 className="font-semibold text-slate-900 text-sm truncate">{product.name}</h3>
-                    <p className="text-amber-600 font-bold mt-1">{formatCurrency(product.price)}</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900">{product.name}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{product.description}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-amber-600 font-bold">{formatCurrency(product.price)}</p>
                     {cartItem ? (
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateQuantity(product.id, -1)}
-                            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="font-bold text-sm w-6 text-center">{cartItem.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(product.id, 1)}
-                            className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(product.id, -1)}
+                          className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="font-bold text-sm w-6 text-center">{cartItem.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(product.id, 1)}
+                          className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
                       </div>
                     ) : (
                       <button
                         onClick={() => addToCart(product)}
-                        className="w-full mt-2 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                        className="py-1.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600"
                       >
                         <Plus className="w-4 h-4" /> Adicionar
                       </button>
                     )}
+                    </div>
                   </div>
                 </motion.div>
               )
