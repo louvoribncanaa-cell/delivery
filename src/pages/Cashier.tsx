@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CreditCard, Search, Check, Clock, DollarSign, Banknote, Smartphone, Lock, Unlock, XCircle, Trash2, Eye, Timer, ChevronRight, TrendingUp, WalletCards, History as HistoryIcon } from 'lucide-react'
+import { CreditCard, Search, Check, Clock, DollarSign, Banknote, Smartphone, Lock, Unlock, XCircle, Trash2, Eye, Timer, ChevronRight, TrendingUp, WalletCards, History as HistoryIcon, PackagePlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
 import Modal from '../components/Modal'
@@ -18,6 +18,7 @@ interface OrderWithItems extends Order {
   order_items: OrderItem[]
 }
 type RegisterHistory = Database['public']['Tables']['cash_register']['Row']
+type Product = Database['public']['Tables']['products']['Row']
 
 const statusFilters = [
   { value: '', label: 'Todos' },
@@ -80,10 +81,17 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
   const [finalAmount, setFinalAmount] = useState('')
   const [registerLoading, setRegisterLoading] = useState(false)
   const [registerHistory, setRegisterHistory] = useState<RegisterHistory[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [directProductId, setDirectProductId] = useState('')
+  const [directQuantity, setDirectQuantity] = useState('1')
+  const [directPayment, setDirectPayment] = useState<'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito'>('dinheiro')
+  const [directSaleOpen, setDirectSaleOpen] = useState(false)
+  const [directSaving, setDirectSaving] = useState(false)
 
   useEffect(() => {
     fetchOrders()
     fetchRegisterHistory()
+    supabase.from('products').select('*').eq('available', true).order('name').then(({ data }) => { if (data) setProducts(data) })
     const channel = supabase
       .channel('cashier-orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
@@ -168,6 +176,28 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
     if (error) { toast.error('Não foi possível limpar os pedidos'); return }
     fetchOrders()
     toast.success('Pedidos movidos para o histórico')
+  }
+
+  async function registerDirectSale() {
+    const product = products.find((item) => item.id === directProductId)
+    const quantity = Math.max(1, Number.parseInt(directQuantity, 10) || 1)
+    if (!product) { toast.error('Selecione um produto'); return }
+    if (!isOpen) { toast.error('Abra o caixa antes de registrar uma saída'); return }
+    setDirectSaving(true)
+    try {
+      const { data: order, error } = await supabase.from('orders').insert({ customer_name: 'Saída direta do caixa', table_or_address: 'Saída direta', total: product.price * quantity, payment_method: directPayment, payment_status: 'pago', status: 'entregue', created_by: null }).select().single()
+      if (error) throw error
+      const { error: itemError } = await supabase.from('order_items').insert({ order_id: order.id, product_id: product.id, quantity, unit_price: product.price })
+      if (itemError) throw itemError
+      toast.success('Saída registrada diretamente no caixa')
+      setDirectSaleOpen(false)
+      setDirectProductId('')
+      setDirectQuantity('1')
+      fetchOrders()
+    } catch (error) {
+      console.error(error)
+      toast.error('Não foi possível registrar a saída')
+    } finally { setDirectSaving(false) }
   }
 
   const filteredOrders = orders.filter((o) => {
@@ -270,6 +300,7 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
               </motion.button>
             )}
           </div>}
+          {isOpen && <button onClick={() => setDirectSaleOpen(true)} className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3.5 text-sm font-bold text-white shadow-lg hover:bg-slate-800"><PackagePlus className="h-5 w-5" /> Saída direta</button>}
         </div>
       </motion.div>
 
@@ -611,6 +642,21 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal isOpen={directSaleOpen} onClose={() => setDirectSaleOpen(false)} title="Saída direta do caixa">
+        <div className="space-y-5">
+          <p className="text-sm text-slate-500">Registre um item vendido diretamente, sem enviar o pedido para a cozinha.</p>
+          <select value={directProductId} onChange={(event) => setDirectProductId(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold">
+            <option value="">Selecione o item</option>
+            {products.map((product) => <option key={product.id} value={product.id}>{product.name} - {formatCurrency(product.price)}</option>)}
+          </select>
+          <input type="number" min="1" value={directQuantity} onChange={(event) => setDirectQuantity(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm" placeholder="Quantidade" />
+          <div className="grid grid-cols-2 gap-2">
+            {(['dinheiro', 'pix', 'cartao_credito', 'cartao_debito'] as const).map((method) => <button key={method} onClick={() => setDirectPayment(method)} className={cn('min-h-11 rounded-xl border px-2 text-xs font-bold', directPayment === method ? 'border-[#14917a] bg-[#e9faf6] text-[#0d7c67]' : 'border-slate-200 bg-white text-slate-500')}>{getPaymentMethodLabel(method)}</button>)}
+          </div>
+          <button onClick={registerDirectSale} disabled={directSaving} className="flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#14917a] font-bold text-white disabled:opacity-60">{directSaving ? 'Registrando...' : 'Registrar saída'}</button>
+        </div>
       </Modal>
 
       {/* ── Open Register Modal ── */}
