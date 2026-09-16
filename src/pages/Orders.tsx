@@ -1,13 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import {
-  Search, ShoppingCart, Plus, Minus, Trash2, Send, X, XCircle, QrCode
+  Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Layout from '../components/Layout'
-import Modal from '../components/Modal'
-import CashierClosed from '../components/CashierClosed'
-import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useCashRegister } from '../contexts/CashRegisterContext'
@@ -17,20 +13,11 @@ import type { Database } from '../lib/supabase'
 
 type Product = Database['public']['Tables']['products']['Row']
 type Category = Database['public']['Tables']['categories']['Row']
-type Order = Database['public']['Tables']['orders']['Row']
 
 interface CartItem {
   product: Product
   quantity: number
   notes: string
-}
-
-interface PixPayment {
-  orderId: string
-  orderNumber: number
-  amount: number
-  payload: string
-  qrCodeBase64?: string
 }
 
 function createOrderId() {
@@ -44,7 +31,7 @@ function createOrderId() {
 
 export default function Orders() {
   const { profile, user } = useAuth()
-  const { isOpen: isCashRegisterOpen, loading: registerLoading } = useCashRegister()
+  const { loading: registerLoading } = useCashRegister()
   const { config: pixConfig, loading: pixConfigLoading } = usePixConfig()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -54,25 +41,12 @@ export default function Orders() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [tableOrAddress, setTableOrAddress] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Insert']['payment_method']>('pix')
   const [submitting, setSubmitting] = useState(false)
-  const [recentOrders, setRecentOrders] = useState<Order[]>([])
-  const [pixPayment, setPixPayment] = useState<PixPayment | null>(null)
 
   useEffect(() => {
     fetchCategories()
     fetchProducts()
-    fetchRecentOrders()
-
-    const channel = supabase
-      .channel('attendant-orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        fetchRecentOrders()
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
   }, [])
 
   async function fetchCategories() {
@@ -83,35 +57,6 @@ export default function Orders() {
   async function fetchProducts() {
     const { data } = await supabase.from('products').select('*').eq('available', true).order('name')
     if (data) setProducts(data)
-  }
-
-  async function fetchRecentOrders() {
-    const { data } = await supabase
-      .from('orders')
-      .select('*')
-      .in('status', ['pendente', 'em_preparo'])
-      .eq('archived', false)
-      .order('created_at', { ascending: false })
-      .limit(5)
-    if (data) setRecentOrders(data)
-  }
-
-  async function cancelOrder(orderId: string) {
-    if (!confirm('Cancelar este pedido?')) return
-    try {
-      const { data, error } = await supabase.rpc('cancel_order', { p_order_id: orderId })
-      if (error) throw error
-      const result = data as { success: boolean; error?: string }
-      if (!result.success) {
-        toast.error(result.error || 'Não foi possível cancelar o pedido')
-        return
-      }
-      fetchRecentOrders()
-      toast.success('Pedido cancelado')
-    } catch (error) {
-      toast.error('Não foi possível cancelar o pedido')
-      console.error(error)
-    }
   }
 
   const filteredProducts = products.filter((p) => {
@@ -156,22 +101,9 @@ export default function Orders() {
   const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
-  const pixPreviewPayload = useMemo(() => {
-    if (paymentMethod !== 'pix' || cartTotal <= 0 || !pixConfig) return null
-    const result = buildPixPayload({
-      keyType: pixConfig.key_type,
-      pixKey: pixConfig.pix_key,
-      merchantName: pixConfig.merchant_name,
-      merchantCity: pixConfig.merchant_city,
-      amount: cartTotal,
-      txid: '***',
-    })
-    return result.payload
-  }, [paymentMethod, cartTotal, pixConfig])
-
   async function submitOrder() {
     if (!customerName.trim()) {
-      toast.error('Informe o nome do cliente')
+      toast.error('Informe seu nome')
       return
     }
     if (cart.length === 0) {
@@ -185,11 +117,10 @@ export default function Orders() {
       const authorId = user?.id ?? profile?.id ?? null
       const orderId = createOrderId()
 
-      // Gera o payload Pix (BR Code) ainda antes do envio, com o valor exato do pedido
       let pixPayload: string | null = null
       if (paymentMethod === 'pix') {
         if (!pixConfig || !pixConfig.active) {
-          toast('Pix não configurado — pedido será enviado sem QR Code', { icon: '⚠️' })
+          // Sem aviso propositalmente
         } else {
           const result = buildPixPayload({
             keyType: pixConfig.key_type,
@@ -199,9 +130,7 @@ export default function Orders() {
             amount: total,
             txid: defaultTxid(orderId),
           })
-          if (!result.payload) {
-            toast('Não foi possível gerar QR Code Pix — pedido enviado sem ele', { icon: '⚠️' })
-          } else {
+          if (result.payload) {
             pixPayload = result.payload
           }
         }
@@ -211,7 +140,6 @@ export default function Orders() {
         id: orderId,
         customer_name: customerName,
         customer_phone: customerPhone,
-        table_or_address: tableOrAddress,
         total,
         payment_method: paymentMethod,
         payment_status: 'pendente' as const,
@@ -237,7 +165,6 @@ export default function Orders() {
         const message = String(firstAttempt.error.message || '').toLowerCase()
         const missingColumn = message.includes('created_by') || message.includes('pix_copy_paste')
         if (!missingColumn) throw firstAttempt.error
-        // Fallback para bancos sem as migrations mais recentes
         const retry = await supabase
           .from('orders')
           .insert(baseData)
@@ -262,431 +189,338 @@ export default function Orders() {
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
       if (itemsError) throw itemsError
 
-      toast.success('Pedido enviado com sucesso!', { icon: '🔥' })
-
-      // Painel do atendente: abre o QR Code Pix para leitura pelo celular do cliente
-      if (paymentMethod === 'pix' && pixPayload) {
-        // Tenta criar pagamento via gateway (Mercado Pago) para QR Code dinâmico
-        let qrCodeBase64: string | undefined
-        try {
-          const { data: gwData, error: gwError } = await supabase.functions.invoke(
-            'create-pix-payment',
-            { body: { order_id: order.id } }
-          )
-          if (!gwError && gwData?.qr_code_base64) {
-            qrCodeBase64 = gwData.qr_code_base64
-          }
-        } catch {
-          // Gateway não configurado ou erro — usa fallback BR Code local
-        }
-
-        setPixPayment({
-          orderId: order.id,
-          orderNumber: order.order_number,
-          amount: total,
-          payload: pixPayload,
-          qrCodeBase64,
-        })
-      }
+      toast.success('Pedido enviado com sucesso!', { icon: '🎉' })
 
       setCart([])
       setCustomerName('')
       setCustomerPhone('')
-      setTableOrAddress('')
       setIsCartOpen(false)
-      fetchRecentOrders()
     } catch (error) {
-      toast.error('Erro ao enviar pedido')
-      console.error(error)
+      const message = error && typeof error === 'object' && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : 'Erro desconhecido'
+      toast.error(`Não foi possível enviar o pedido: ${message}`)
+      console.error('Erro ao enviar pedido:', error)
     } finally {
       setSubmitting(false)
     }
   }
 
-  return (
-    <Layout title="Novo Pedido">
-      {!registerLoading && !isCashRegisterOpen && (
-        <CashierClosed pageName="Pedidos" />
-      )}
-
-      {registerLoading && (
+  if (registerLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
+                <Utensils className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">Cardápio Digital</h1>
+                <p className="text-xs text-slate-500">Carregando...</p>
+              </div>
+            </div>
+          </div>
+        </header>
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-amber-500 border-t-transparent" />
         </div>
-      )}
+      </div>
+    )
+  }
 
-      {!registerLoading && isCashRegisterOpen && (
-        <>
-          {/* Search */}
-          <div className="mb-4">
-        <div className="relative">
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
+                <Utensils className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">Cardápio Digital</h1>
+                <p className="text-xs text-slate-500">Faça seu pedido pelo celular</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 py-4 pb-24">
+        {/* Search */}
+        <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar produtos..."
+            placeholder="Buscar no cardápio..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-sm"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 shadow-sm"
           />
         </div>
-      </div>
 
-      {/* Categories horizontal scroll */}
-       <div className="mb-5 -mx-3 overflow-x-auto px-3 pb-3 sm:-mx-4 sm:px-4">
-        <div className="flex min-w-max gap-1.5">
-          <button
-            onClick={() => setSelectedCategory('')}
-            className={cn(
-              'min-h-8 min-w-[76px] px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap text-center',
-              !selectedCategory
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'bg-blue-600 text-white border border-blue-700 shadow-sm hover:bg-blue-700'
-            )}
-          >
-            Todos
-          </button>
-          {categories.map((cat) => (
+        {/* Categories */}
+        <div className="mb-5 -mx-4 overflow-x-auto px-4 pb-3">
+          <div className="flex min-w-max gap-1.5">
             <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
+              onClick={() => setSelectedCategory('')}
               className={cn(
-              'min-h-8 min-w-[76px] px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap text-center',
-                selectedCategory === cat.id
+                'min-h-8 min-w-[76px] px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap text-center',
+                !selectedCategory
                   ? 'bg-amber-500 text-white shadow-md'
                   : 'bg-blue-600 text-white border border-blue-700 shadow-sm hover:bg-blue-700'
               )}
             >
-              {cat.name}
+              Todos
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Products Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {filteredProducts.map((product) => {
-          const cartItem = cart.find((c) => c.product.id === product.id)
-          return (
-            <motion.div
-              key={product.id}
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="aspect-square bg-slate-100 flex items-center justify-center overflow-hidden">
-                {product.image_url ? (
-                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="text-4xl">🍔</div>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={cn(
+                  'min-h-8 min-w-[76px] px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap text-center',
+                  selectedCategory === cat.id
+                    ? 'bg-amber-500 text-white shadow-md'
+                    : 'bg-blue-600 text-white border border-blue-700 shadow-sm hover:bg-blue-700'
                 )}
-              </div>
-              <div className="p-3">
-                <h3 className="font-semibold text-slate-900 text-sm truncate">{product.name}</h3>
-                <p className="text-amber-600 font-bold mt-1">{formatCurrency(product.price)}</p>
-                {cartItem ? (
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateQuantity(product.id, -1)}
-                        className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="font-bold text-sm w-6 text-center">{cartItem.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(product.id, 1)}
-                        className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => addToCart(product)}
-                    className="w-full mt-2 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Plus className="w-4 h-4" /> Adicionar
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          )
-        })}
-      </div>
-
-      {filteredProducts.length === 0 && (
-        <div className="text-center py-12 text-slate-500">
-          <p className="text-lg">Nenhum produto encontrado</p>
-        </div>
-      )}
-
-      {/* Pedidos Recentes */}
-      {recentOrders.length > 0 && (
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-700">Pedidos Recentes</h3>
-            <button onClick={fetchRecentOrders} className="text-xs text-amber-600 hover:text-amber-700 font-medium">
-              Atualizar
-            </button>
-          </div>
-          <div className="space-y-2">
-            {recentOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-xl border border-slate-200 p-3 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-slate-900">#{order.order_number}</span>
-                  <span className="text-sm text-slate-600">{order.customer_name}</span>
-                  <span className={cn(
-                    'px-2 py-0.5 rounded-full text-xs font-medium',
-                    order.status === 'pendente' && 'bg-amber-100 text-amber-700',
-                    order.status === 'em_preparo' && 'bg-blue-100 text-blue-700'
-                  )}>
-                    {order.status === 'pendente' ? 'Pendente' : 'Em Preparo'}
-                  </span>
-                </div>
-                {order.status === 'pendente' && (
-                  <button
-                    onClick={() => cancelOrder(order.id)}
-                    className="p-2 text-crimson-500 hover:bg-crimson-50 rounded-lg transition-colors"
-                  >
-                    <XCircle className="w-4 h-4" />
-                  </button>
-                )}
-                {order.status === 'em_preparo' && (
-                  <span className="text-xs text-blue-500 font-medium px-2">Em preparo</span>
-                )}
-              </div>
+              >
+                {cat.name}
+              </button>
             ))}
           </div>
         </div>
-      )}
 
-      {/* Floating Cart Button */}
+        {/* Products */}
+        <div className="space-y-3">
+          {filteredProducts.map((product) => {
+            const cartItem = cart.find((c) => c.product.id === product.id)
+            return (
+              <motion.div
+                key={product.id}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex gap-4"
+              >
+                <div className="w-20 h-20 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl">🍔</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-slate-900">{product.name}</h3>
+                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{product.description}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-amber-600 font-bold">{formatCurrency(product.price)}</p>
+                    {cartItem ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(product.id, -1)}
+                          className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="font-bold text-sm w-6 text-center">{cartItem.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(product.id, 1)}
+                          className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => addToCart(product)}
+                        className="py-1.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600"
+                      >
+                        <Plus className="w-4 h-4" /> Adicionar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-12 text-slate-500">
+            <p>Nenhum item encontrado</p>
+          </div>
+        )}
+      </div>
+
       {cartItemCount > 0 && (
         <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          initial={{ y: 24, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           onClick={() => setIsCartOpen(true)}
-           className="fixed bottom-4 right-3 z-40 flex items-center gap-3 rounded-2xl bg-amber-500 px-5 py-3.5 text-white shadow-2xl shadow-amber-500/40 transition-colors hover:bg-amber-600 sm:bottom-6 sm:right-6 sm:px-6 sm:py-4"
+          className="fixed bottom-4 left-4 right-4 z-40 mx-auto flex max-w-4xl items-center justify-between rounded-2xl bg-amber-500 px-5 py-3.5 text-white shadow-xl shadow-amber-500/30 transition-colors hover:bg-amber-600"
         >
-          <ShoppingCart className="w-6 h-6" />
-          <div className="text-left">
-            <p className="text-xs opacity-80">{cartItemCount} {cartItemCount === 1 ? 'item' : 'itens'}</p>
-            <p className="font-bold">{formatCurrency(cartTotal)}</p>
-          </div>
+          <span className="flex items-center gap-3">
+            <span className="relative"><ShoppingCart className="h-6 w-6" /><span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-crimson-500 text-xs font-bold">{cartItemCount}</span></span>
+            <span className="text-left"><span className="block text-xs opacity-90">Seu carrinho</span><span className="block font-bold">Ver pedido</span></span>
+          </span>
+          <span className="font-bold">{formatCurrency(cartTotal)}</span>
         </motion.button>
       )}
 
       {/* Cart Drawer */}
-      <AnimatePresence>
-        {isCartOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-              onClick={() => setIsCartOpen(false)}
-            />
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 right-0 z-50 flex h-[100dvh] min-w-0 flex-col overflow-x-hidden bg-white shadow-2xl sm:left-auto sm:h-auto sm:max-h-screen sm:overflow-hidden sm:w-[420px] sm:rounded-l-2xl"
-            >
-              <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3.5 sm:px-6 sm:py-4">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5 text-amber-500" />
-                  <h2 className="text-lg font-bold text-slate-900">Meu Pedido</h2>
-                </div>
-                <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4">
-                {cart.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>Carrinho vazio</p>
-                  </div>
-                ) : (
-                  cart.map((item) => (
-                    <motion.div
-                      key={item.product.id}
-                      layout
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                       className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 sm:p-3"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 bg-slate-200 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
-                          {item.product.image_url ? (
-                            <img src={item.product.image_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-xl">🍔</span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm text-slate-900 truncate">{item.product.name}</h4>
-                          <p className="text-amber-600 font-bold text-sm">{formatCurrency(item.product.price)}</p>
-                        </div>
-                        <button
-                          onClick={() => removeFromCart(item.product.id)}
-                          className="p-1.5 hover:bg-crimson-100 rounded-lg text-crimson-500 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateQuantity(item.product.id, -1)}
-                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 flex items-center justify-center"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="font-bold text-sm w-6 text-center">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.product.id, 1)}
-                            className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <p className="font-bold text-sm">{formatCurrency(item.product.price * item.quantity)}</p>
-                      </div>
-
-                      <input
-                        type="text"
-                        placeholder="Observação..."
-                        value={item.notes}
-                        onChange={(e) => updateItemNotes(item.product.id, e.target.value)}
-                         className="mt-3 min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-                      />
-                    </motion.div>
-                  ))
-                )}
-              </div>
-
-              {cart.length > 0 && (
-                 <div className="shrink-0 space-y-3 border-t border-slate-200 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-4">
-                  <input
-                    type="text"
-                    placeholder="Nome do cliente *"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                     className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:border-amber-500"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Telefone (opcional)"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                     className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:border-amber-500"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Mesa ou endereço"
-                    value={tableOrAddress}
-                    onChange={(e) => setTableOrAddress(e.target.value)}
-                     className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:border-amber-500"
-                  />
-
-                  <div>
-                     <p className="mb-2 text-sm font-semibold text-slate-700">Forma de pagamento</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { value: 'pix', label: 'Pix', icon: '⚡' },
-                        { value: 'cartao_credito', label: 'Cartão Crédito', icon: '💳' },
-                        { value: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
-                        { value: 'dinheiro', label: 'Dinheiro', icon: '💵' },
-                      ].map((method) => (
-                        <button
-                          key={method.value}
-                          onClick={() => setPaymentMethod(method.value as typeof paymentMethod)}
-                          className={cn(
-                            'flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-sm font-medium transition-all',
-                            paymentMethod === method.value
-                              ? 'bg-amber-500 text-white border-amber-500'
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300'
-                          )}
-                        >
-                          <span className="text-sm leading-none" aria-hidden="true">{method.icon}</span>
-                          <span className="truncate">{method.label}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    {pixConfigLoading ? (
-                      <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-amber-500 border-t-transparent" />
-                        Carregando configuração Pix...
-                      </div>
-                    ) : paymentMethod === 'pix' && pixPreviewPayload ? (
-                      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                          <QrCode className="h-4 w-4 text-amber-500" />
-                          Prévia do QR Code Pix (atualizada com o valor do pedido)
-                        </div>
-                        <PixQRCode payload={pixPreviewPayload} amount={cartTotal} compact showInstructions={false} />
-                      </div>
-                    ) : paymentMethod === 'pix' ? (
-                      <p className="mt-3 text-xs text-crimson-500">
-                        Chave Pix não configurada. Peça ao administrador para cadastrá-la.
-                      </p>
-                    ) : null}
-                  </div>
-
-                   <div className="flex items-center justify-between border-t border-slate-100 pt-1 text-xl font-bold">
-                    <span>Total</span>
-                    <span className="text-amber-600">{formatCurrency(cartTotal)}</span>
-                  </div>
-
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    onClick={submitOrder}
-                    disabled={submitting || !customerName.trim()}
-                    className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {submitting ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                    ) : (
-                      <>
-                        <Send className="w-5 h-5" />
-                        Enviar para Cozinha
-                      </>
-                    )}
-                  </motion.button>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Pix Payment Modal */}
-      <Modal
-        isOpen={!!pixPayment}
-        onClose={() => setPixPayment(null)}
-        title={pixPayment ? `Pagamento Pix - Pedido #${pixPayment.orderNumber}` : ''}
-      >
-        {pixPayment && (
-          <PixQRCode
-            payload={pixPayment.payload}
-            qrCodeBase64={pixPayment.qrCodeBase64}
-            amount={pixPayment.amount}
-            orderId={pixPayment.orderId}
-            paymentStatus="pendente"
+      {isCartOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => setIsCartOpen(false)}
           />
-        )}
-      </Modal>
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 h-[92vh] bg-white z-50 rounded-t-3xl flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-amber-500" />
+                <h2 className="text-lg font-bold text-slate-900">Seu Pedido</h2>
+              </div>
+              <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Items */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+              {cart.length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                  <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Seu carrinho está vazio</p>
+                </div>
+              ) : (
+                cart.map((item) => (
+                  <div key={item.product.id} className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm text-slate-900">{item.product.name}</h4>
+                        <p className="text-amber-600 font-bold text-sm mt-0.5">{formatCurrency(item.product.price)}</p>
+                      </div>
+                      <button
+                        onClick={() => removeFromCart(item.product.id)}
+                        className="p-2 hover:bg-crimson-50 rounded-lg text-crimson-500 ml-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => updateQuantity(item.product.id, -1)}
+                          className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center active:bg-slate-100"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="font-bold text-base w-8 text-center">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.product.id, 1)}
+                          className="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center active:bg-amber-600"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="font-bold text-base text-slate-900">{formatCurrency(item.product.price * item.quantity)}</p>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Observação..."
+                      value={item.notes}
+                      onChange={(e) => updateItemNotes(item.product.id, e.target.value)}
+                      className="w-full mt-3 px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 placeholder-slate-400"
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Bottom Form */}
+            {cart.length > 0 && (
+              <div className="shrink-0 border-t border-slate-200 bg-white px-5 py-4 space-y-3 safe-area-inset-bottom">
+                <input
+                  type="text"
+                  placeholder="Seu nome *"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500 placeholder-slate-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Telefone (opcional)"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500 placeholder-slate-400"
+                />
+
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Forma de pagamento</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'pix', label: 'Pix' },
+                      { value: 'cartao_credito', label: 'Cartão Crédito' },
+                      { value: 'cartao_debito', label: 'Cartão Débito' },
+                      { value: 'dinheiro', label: 'Dinheiro' },
+                    ].map((method) => (
+                      <button
+                        key={method.value}
+                        onClick={() => setPaymentMethod(method.value as typeof paymentMethod)}
+                        className={cn(
+                          'py-3 rounded-xl text-sm font-semibold transition-all border',
+                          paymentMethod === method.value
+                            ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                            : 'bg-white text-slate-600 border-slate-200 active:bg-slate-50'
+                        )}
+                      >
+                        {method.label}
+                      </button>
+                    ))}
+                  </div>
+                  {pixConfigLoading && (
+                    <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
+                      <span className="animate-spin rounded-full h-3 w-3 border-2 border-amber-500 border-t-transparent" />
+                      Carregando configuração de pagamento...
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-base font-bold text-slate-900">Total</span>
+                  <span className="text-xl font-bold text-amber-600">{formatCurrency(cartTotal)}</span>
+                </div>
+
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={submitOrder}
+                  disabled={submitting || !customerName.trim()}
+                  className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-base"
+                >
+                  {submitting ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Finalizar Pedido
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            )}
+          </motion.div>
         </>
       )}
-    </Layout>
+    </div>
   )
 }

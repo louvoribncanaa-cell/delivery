@@ -48,7 +48,7 @@ function AppRoutes() {
     if (roles.includes('atendente')) return '/orders'
     if (roles.includes('cozinha')) return '/kitchen'
     if (roles.includes('caixa')) return '/cashier'
-    return '/menu'
+    return '/orders'
   }
 
   return (
@@ -57,7 +57,7 @@ function AppRoutes() {
       <Route path="/menu" element={<Menu />} />
 
       <Route path="/orders" element={
-        <ProtectedRoute allowedRoles={['atendente', 'admin']}>
+        <ProtectedRoute allowedRoles={['atendente', 'admin', 'cliente']}>
           <Orders />
         </ProtectedRoute>
       } />
