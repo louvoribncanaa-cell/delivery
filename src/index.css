@@ -75,6 +75,11 @@ body {
   color: #1a2535;
 }
 
+.safe-screen-padding {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
 /* Keeps mobile sheets compact without changing the desktop composition. */
 @media (max-width: 639px) {
   .mobile-sheet-scale {
