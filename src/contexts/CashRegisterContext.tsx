@@ -10,7 +10,7 @@ interface CashRegisterContextType {
   currentRegister: CashRegister | null
   loading: boolean
   openRegister: (initialAmount?: number) => Promise<{ error?: string }>
-  closeRegister: (finalAmount?: number) => Promise<{ error?: string }>
+  closeRegister: (finalAmount?: number, resetOrderNumbers?: boolean) => Promise<{ error?: string }>
   refresh: () => Promise<void>
 }
 
@@ -74,7 +74,7 @@ export function CashRegisterProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function closeRegister(finalAmount: number = 0) {
+  async function closeRegister(finalAmount: number = 0, resetOrderNumbers = false) {
     if (!currentRegister) return { error: 'Nenhum caixa aberto' }
 
     try {
@@ -88,6 +88,10 @@ export function CashRegisterProvider({ children }: { children: ReactNode }) {
         .eq('id', currentRegister.id)
 
       if (error) throw error
+      if (resetOrderNumbers) {
+        const { error: resetError } = await supabase.rpc('reset_order_number_sequence')
+        if (resetError) throw resetError
+      }
       await fetchStatus()
       return {}
     } catch (error: any) {

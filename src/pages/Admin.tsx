@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
   Settings, Package, Tag, Users, Plus, Pencil, Trash2, Save,
-  ToggleLeft, ToggleRight, Eye, EyeOff, QrCode, ShieldCheck
+  ToggleLeft, ToggleRight, Eye, EyeOff, QrCode, ShieldCheck, Receipt
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
@@ -21,7 +21,7 @@ type Product = Database['public']['Tables']['products']['Row']
 type Category = Database['public']['Tables']['categories']['Row']
 type Profile = Database['public']['Tables']['profiles']['Row']
 
-type Tab = 'products' | 'categories' | 'users' | 'pix' | 'gateway'
+type Tab = 'products' | 'categories' | 'users' | 'pix' | 'gateway' | 'orders'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrador',
@@ -41,6 +41,7 @@ const roleColors: Record<string, string> = {
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState<Tab>('products')
+  const [resettingOrderNumbers, setResettingOrderNumbers] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -404,12 +405,22 @@ export default function Admin() {
     amount: 100,
   })
 
+  async function resetOrderNumbers() {
+    if (!confirm('Reiniciar a numeração dos pedidos? O próximo pedido começará no número 1.')) return
+    setResettingOrderNumbers(true)
+    const { error } = await supabase.rpc('reset_order_number_sequence')
+    if (error) toast.error(error.message || 'Não foi possível reiniciar a numeração')
+    else toast.success('Numeração dos pedidos reiniciada')
+    setResettingOrderNumbers(false)
+  }
+
   const tabs = [
     { key: 'products', label: 'Produtos', icon: <Package className="w-4 h-4" /> },
     { key: 'categories', label: 'Categorias', icon: <Tag className="w-4 h-4" /> },
     { key: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
     { key: 'pix', label: 'Pix', icon: <QrCode className="w-4 h-4" /> },
     { key: 'gateway', label: 'Gateway PIX', icon: <Settings className="w-4 h-4" /> },
+    { key: 'orders', label: 'Pedidos', icon: <Receipt className="w-4 h-4" /> },
   ] as const
 
   if (loading) {
@@ -631,6 +642,15 @@ export default function Admin() {
             </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Order numbering */}
+      {activeTab === 'orders' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900">Numeração dos pedidos</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Reinicie a sequência para começar novamente pelo pedido #1. Os pedidos anteriores continuam preservados no histórico.</p>
+          <button onClick={resetOrderNumbers} disabled={resettingOrderNumbers} className="mt-5 rounded-xl bg-rose-500 px-5 py-3 font-semibold text-white hover:bg-rose-600 disabled:opacity-50">{resettingOrderNumbers ? 'Reiniciando...' : 'Reiniciar numeração'}</button>
         </div>
       )}
 

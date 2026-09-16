@@ -19,6 +19,7 @@ export default function CashManagement() {
   const [closeModal, setCloseModal] = useState(false)
   const [initialAmount, setInitialAmount] = useState('')
   const [saving, setSaving] = useState(false)
+  const [resetNumbersOnClose, setResetNumbersOnClose] = useState(false)
 
   async function loadData() {
     const [ordersResult, historyResult] = await Promise.all([
@@ -48,9 +49,9 @@ export default function CashManagement() {
 
   async function handleClose() {
     setSaving(true)
-    const result = await closeRegister(expectedCash)
+    const result = await closeRegister(expectedCash, resetNumbersOnClose)
     if (result.error) toast.error(result.error)
-    else { toast.success('Caixa fechado com sucesso'); setCloseModal(false); await loadData() }
+    else { toast.success(resetNumbersOnClose ? 'Caixa fechado e numeração reiniciada' : 'Caixa fechado com sucesso'); setCloseModal(false); setResetNumbersOnClose(false); await loadData() }
     setSaving(false)
   }
 
@@ -76,7 +77,7 @@ export default function CashManagement() {
       </div>
 
       <Modal isOpen={openModal} onClose={() => setOpenModal(false)} title="Abrir Caixa"><div className="space-y-5"><input type="number" min="0" step="0.01" value={initialAmount} onChange={(event) => setInitialAmount(event.target.value)} placeholder="Saldo inicial" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-lg font-bold" /><button onClick={handleOpen} disabled={saving} className="w-full rounded-xl bg-teal-600 py-4 font-bold text-white disabled:opacity-50">{saving ? 'Abrindo...' : 'Confirmar abertura'}</button></div></Modal>
-      <Modal isOpen={closeModal} onClose={() => setCloseModal(false)} title="Fechar Caixa"><div className="space-y-5"><div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-slate-500">Valor esperado em dinheiro</p><strong className="text-2xl">{formatCurrency(expectedCash)}</strong></div><button onClick={handleClose} disabled={saving} className="w-full rounded-xl bg-rose-500 py-4 font-bold text-white disabled:opacity-50">{saving ? 'Fechando...' : 'Confirmar fechamento'}</button></div></Modal>
+      <Modal isOpen={closeModal} onClose={() => setCloseModal(false)} title="Fechar Caixa"><div className="space-y-5"><div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-slate-500">Valor esperado em dinheiro</p><strong className="text-2xl">{formatCurrency(expectedCash)}</strong></div><label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><input type="checkbox" checked={resetNumbersOnClose} onChange={(event) => setResetNumbersOnClose(event.target.checked)} className="mt-1 h-4 w-4 accent-amber-600" /><span><strong className="block text-sm text-amber-900">Reiniciar numeração dos pedidos</strong><span className="mt-1 block text-xs leading-5 text-amber-800">O próximo pedido começará no número 1. O histórico não será apagado.</span></span></label><button onClick={handleClose} disabled={saving} className="w-full rounded-xl bg-rose-500 py-4 font-bold text-white disabled:opacity-50">{saving ? 'Fechando...' : 'Confirmar fechamento'}</button></div></Modal>
     </Layout>
   )
 }
