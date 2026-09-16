@@ -384,7 +384,7 @@ export default function Menu() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-               className="mobile-sheet-scale fixed bottom-0 left-0 right-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md h-[90dvh] sm:h-auto sm:max-h-[90dvh] bg-white z-50 rounded-t-[24px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+                className="mobile-sheet-scale safe-screen-padding fixed bottom-4 left-4 right-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md h-[calc(90dvh-1rem)] sm:h-auto sm:max-h-[90dvh] bg-white z-50 rounded-t-[24px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]"
             >
               {/* Header */}
               <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 pb-5 pt-4">
@@ -558,7 +558,7 @@ export default function Menu() {
           initial={{ y: 24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           onClick={() => setIsOrderTrackingOpen(true)}
-          className="fixed bottom-4 left-4 right-4 z-40 mx-auto flex max-w-4xl items-center justify-between rounded-2xl bg-white border-2 border-amber-500 px-5 py-3.5 text-slate-900 shadow-xl transition-all hover:shadow-2xl"
+           className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] right-[max(1rem,env(safe-area-inset-right))] z-40 mx-auto flex max-w-4xl items-center justify-between rounded-2xl bg-white border-2 border-amber-500 px-5 py-3.5 text-slate-900 shadow-xl transition-all hover:shadow-2xl"
         >
           <span className="flex items-center gap-3">
             <span className={cn(
@@ -580,7 +580,7 @@ export default function Menu() {
         </motion.button>
       )}
 
-      <div className="max-w-4xl mx-auto px-4 py-4 pb-24">
+       <div className="safe-screen-padding max-w-4xl mx-auto px-5 py-5 pb-28 sm:px-6">
         {cashierClosedNotice}
         {/* Search */}
         <div className="relative mb-4">
