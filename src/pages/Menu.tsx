@@ -379,7 +379,7 @@ export default function Menu() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-               className="fixed bottom-0 left-0 right-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md h-[90dvh] sm:h-auto sm:max-h-[90dvh] bg-white z-50 rounded-t-[24px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+               className="mobile-sheet-scale fixed bottom-0 left-0 right-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md h-[90dvh] sm:h-auto sm:max-h-[90dvh] bg-white z-50 rounded-t-[24px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
             >
               {/* Header */}
               <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 pb-5 pt-4">
@@ -737,7 +737,7 @@ export default function Menu() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-             className="fixed bottom-0 left-0 right-0 h-[90dvh] bg-white z-50 rounded-t-[24px] flex flex-col shadow-2xl"
+             className="mobile-sheet-scale fixed bottom-0 left-0 right-0 h-[90dvh] bg-white z-50 rounded-t-[24px] flex flex-col shadow-2xl"
           >
             {/* Header */}
              <div className="shrink-0 border-b border-slate-200 bg-white px-5 pb-4 pt-3">

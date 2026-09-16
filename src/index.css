@@ -75,6 +75,13 @@ body {
   color: #1a2535;
 }
 
+/* Keeps mobile sheets compact without changing the desktop composition. */
+@media (max-width: 639px) {
+  .mobile-sheet-scale {
+    zoom: 0.95;
+  }
+}
+
 button,
 a,
 input,
