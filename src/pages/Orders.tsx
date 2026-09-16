@@ -465,7 +465,7 @@ export default function Orders() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               onClick={() => setIsCartOpen(true)}
-              className="fixed bottom-4 right-3 z-40 flex items-center gap-3 rounded-2xl bg-amber-500 px-5 py-3.5 text-white shadow-2xl shadow-amber-500/40 transition-colors hover:bg-amber-600 sm:bottom-6 sm:right-6 sm:px-6 sm:py-4"
+               className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-40 flex items-center gap-3 rounded-2xl bg-amber-500 px-5 py-3.5 text-white shadow-2xl shadow-amber-500/40 transition-colors hover:bg-amber-600 sm:bottom-6 sm:right-6 sm:px-6 sm:py-4"
             >
               <ShoppingCart className="w-6 h-6" />
               <div className="text-left">
@@ -491,9 +491,9 @@ export default function Orders() {
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                  className="fixed inset-y-0 left-0 right-0 z-50 flex h-[100dvh] min-w-0 flex-col overflow-x-hidden bg-white shadow-2xl sm:left-auto sm:h-auto sm:max-h-screen sm:overflow-hidden sm:w-[420px] sm:rounded-l-2xl"
+                   className="safe-screen-padding fixed inset-y-0 left-0 right-0 z-50 flex h-[100dvh] min-w-0 flex-col overflow-x-hidden bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:left-auto sm:h-auto sm:max-h-screen sm:overflow-hidden sm:w-[420px] sm:rounded-l-2xl"
                 >
-                  <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3.5 sm:px-6 sm:py-4">
+                   <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6 sm:py-5">
                     <div className="flex items-center gap-2">
                       <ShoppingCart className="w-5 h-5 text-amber-500" />
                       <h2 className="text-lg font-bold text-slate-900">Meu Pedido</h2>
@@ -503,7 +503,7 @@ export default function Orders() {
                     </button>
                   </div>
 
-                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4">
+                   <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4 sm:p-5">
                     {cart.length === 0 ? (
                       <div className="text-center py-12 text-slate-400">
                         <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -571,7 +571,7 @@ export default function Orders() {
                   </div>
 
                   {cart.length > 0 && (
-                    <div className="shrink-0 space-y-3 border-t border-slate-200 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-4">
+                     <div className="shrink-0 space-y-3 border-t border-slate-200 bg-white px-5 py-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:p-5">
                       <input
                         type="text"
                         placeholder="Nome do cliente *"
