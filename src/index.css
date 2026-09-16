@@ -80,6 +80,16 @@ body {
   padding-right: max(16px, env(safe-area-inset-right));
 }
 
+/* Persistent order status bar: keep it visible above browser content and system bars. */
+.order-status-float {
+  position: fixed;
+  z-index: 60;
+  bottom: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+}
+
 /* Keeps mobile sheets compact without changing the desktop composition. */
 @media (max-width: 639px) {
   .mobile-sheet-scale {

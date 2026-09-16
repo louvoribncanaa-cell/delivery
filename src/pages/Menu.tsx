@@ -558,7 +558,7 @@ export default function Menu() {
           initial={{ y: 24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           onClick={() => setIsOrderTrackingOpen(true)}
-           className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] right-[max(1rem,env(safe-area-inset-right))] z-40 mx-auto flex max-w-4xl items-center justify-between rounded-2xl bg-white border-2 border-amber-500 px-5 py-3.5 text-slate-900 shadow-xl transition-all hover:shadow-2xl"
+           className="order-status-float mx-auto flex max-w-4xl items-center justify-between rounded-2xl bg-white border-2 border-amber-500 px-5 py-3.5 text-slate-900 shadow-xl transition-all hover:shadow-2xl"
         >
           <span className="flex items-center gap-3">
             <span className={cn(
