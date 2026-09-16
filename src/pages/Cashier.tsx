@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CreditCard, Search, Check, Clock, DollarSign, Banknote, Smartphone, Lock, Unlock, XCircle, Trash2, Eye, Timer, ChevronRight } from 'lucide-react'
+import { CreditCard, Search, Check, Clock, DollarSign, Banknote, Smartphone, Lock, Unlock, XCircle, Trash2, Eye, Timer, ChevronRight, TrendingUp, WalletCards, History as HistoryIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
 import Modal from '../components/Modal'
@@ -17,6 +17,7 @@ type OrderItem = Database['public']['Tables']['order_items']['Row'] & {
 interface OrderWithItems extends Order {
   order_items: OrderItem[]
 }
+type RegisterHistory = Database['public']['Tables']['cash_register']['Row']
 
 const statusFilters = [
   { value: '', label: 'Todos' },
@@ -78,15 +79,27 @@ export default function Cashier() {
   const [initialAmount, setInitialAmount] = useState('')
   const [finalAmount, setFinalAmount] = useState('')
   const [registerLoading, setRegisterLoading] = useState(false)
+  const [registerHistory, setRegisterHistory] = useState<RegisterHistory[]>([])
 
   useEffect(() => {
     fetchOrders()
+    fetchRegisterHistory()
     const channel = supabase
       .channel('cashier-orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
+
+  async function fetchRegisterHistory() {
+    const { data } = await supabase
+      .from('cash_register')
+      .select('*')
+      .eq('status', 'closed')
+      .order('closed_at', { ascending: false })
+      .limit(6)
+    if (data) setRegisterHistory(data)
+  }
 
   async function fetchOrders() {
     try {
@@ -116,7 +129,7 @@ export default function Cashier() {
     setRegisterLoading(true)
     const amount = Number(currentRegister?.initial_amount || 0) + totalPaid
     const { error } = await closeRegister(amount)
-    if (error) { toast.error(error) } else { toast.success('Caixa fechado com sucesso!'); setIsCloseModalOpen(false); setFinalAmount('') }
+    if (error) { toast.error(error) } else { toast.success('Caixa fechado com sucesso!'); setIsCloseModalOpen(false); setFinalAmount(''); fetchRegisterHistory() }
     setRegisterLoading(false)
   }
 
@@ -167,9 +180,12 @@ export default function Cashier() {
   const todayOrders = orders.filter((o) => new Date(o.created_at).toDateString() === new Date().toDateString())
   const totalPaid = todayOrders.filter((o) => o.payment_status === 'pago').reduce((sum, o) => sum + Number(o.total), 0)
   const totalPending = todayOrders.filter((o) => o.payment_status === 'pendente').reduce((sum, o) => sum + Number(o.total), 0)
+  const grossToday = todayOrders.filter((o) => o.status !== 'cancelado').reduce((sum, o) => sum + Number(o.total), 0)
+  const averageTicket = todayOrders.length ? grossToday / todayOrders.length : 0
   const byPaymentMethod = todayOrders
     .filter((o) => o.payment_status === 'pago')
     .reduce((acc, o) => { acc[o.payment_method] = (acc[o.payment_method] || 0) + Number(o.total); return acc }, {} as Record<string, number>)
+  const cashExpected = Number(currentRegister?.initial_amount || 0) + (byPaymentMethod.dinheiro || 0)
 
   if (loading) {
     return (
@@ -327,6 +343,32 @@ export default function Cashier() {
           </div>
         </motion.div>
       </div>
+
+      {/* ── Turn Management Overview ── */}
+      <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <div className="rounded-[22px] border border-slate-200/70 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Resumo do turno</p>
+              <h3 className="mt-1 text-lg font-extrabold text-slate-900">Visão financeira</h3>
+            </div>
+            <div className="rounded-xl bg-teal-50 p-2.5 text-teal-700"><TrendingUp className="h-5 w-5" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Faturamento bruto</p><p className="mt-1 text-lg font-extrabold text-slate-900">{formatCurrency(grossToday)}</p></div>
+            <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Ticket médio</p><p className="mt-1 text-lg font-extrabold text-slate-900">{formatCurrency(averageTicket)}</p></div>
+            <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Pedidos hoje</p><p className="mt-1 text-lg font-extrabold text-slate-900">{todayOrders.length}</p></div>
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
+            <span className="flex items-center gap-2 text-slate-500"><WalletCards className="h-4 w-4" /> Dinheiro esperado no caixa</span>
+            <strong className="text-teal-700">{formatCurrency(cashExpected)}</strong>
+          </div>
+        </div>
+        <div className="rounded-[22px] border border-slate-200/70 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-slate-500" /><h3 className="text-lg font-extrabold text-slate-900">Últimos fechamentos</h3></div>
+          {registerHistory.length === 0 ? <p className="py-5 text-sm text-slate-400">Nenhum fechamento registrado.</p> : <div className="space-y-2">{registerHistory.slice(0, 4).map((register) => <div key={register.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5"><span className="text-xs text-slate-500">{register.closed_at ? formatDate(register.closed_at) : 'Sem data'}</span><span className="text-sm font-bold text-slate-800">{formatCurrency(Number(register.final_amount || 0))}</span></div>)}</div>}
+        </div>
+      </section>
 
       {/* ── Filters ── */}
       <div className="mb-6 rounded-[22px] border border-slate-200/60 p-5" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}>
