@@ -11,6 +11,7 @@ import CashManagement from './pages/CashManagement'
 import Admin from './pages/Admin'
 import History from './pages/History'
 import MyOrders from './pages/MyOrders'
+import Driver from './pages/Driver'
 import type { ReactNode } from 'react'
 
 function ProtectedRoute({ children, allowedRoles }: { children: ReactNode; allowedRoles?: string[] }) {
@@ -49,6 +50,7 @@ function AppRoutes() {
     if (roles.includes('atendente')) return '/orders'
     if (roles.includes('cozinha')) return '/kitchen'
     if (roles.includes('caixa')) return '/cashier'
+    if (roles.includes('entregador')) return '/driver'
     return '/menu'
   }
 
@@ -56,6 +58,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={profile ? <Navigate to={getHomeRoute()} replace /> : <Login />} />
       <Route path="/menu" element={<Menu />} />
+      <Route path="/driver" element={<ProtectedRoute allowedRoles={['entregador', 'admin']}><Driver /></ProtectedRoute>} />
 
       <Route path="/orders" element={
         <ProtectedRoute allowedRoles={['atendente', 'admin']}>

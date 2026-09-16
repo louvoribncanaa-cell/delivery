@@ -24,7 +24,7 @@ export type Database = {
         Row: {
           id: string
           name: string
-          role: 'admin' | 'caixa' | 'cozinha' | 'atendente' | 'cliente'
+          role: 'admin' | 'caixa' | 'cozinha' | 'atendente' | 'entregador' | 'cliente'
           roles: string[]
           allowed_screens: string[]
           created_at: string
@@ -32,7 +32,7 @@ export type Database = {
         Insert: {
           id: string
           name: string
-          role: 'admin' | 'caixa' | 'cozinha' | 'atendente' | 'cliente'
+          role: 'admin' | 'caixa' | 'cozinha' | 'atendente' | 'entregador' | 'cliente'
           roles?: string[]
           allowed_screens?: string[]
           created_at?: string
@@ -40,7 +40,7 @@ export type Database = {
         Update: {
           id?: string
           name?: string
-          role?: 'admin' | 'caixa' | 'cozinha' | 'atendente' | 'cliente'
+          role?: 'admin' | 'caixa' | 'cozinha' | 'atendente' | 'entregador' | 'cliente'
           roles?: string[]
           allowed_screens?: string[]
           created_at?: string

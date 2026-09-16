@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Plus,
   BarChart3,
+  Bike,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useState } from 'react'
@@ -26,6 +27,7 @@ const navItems: Record<string, { to: string; icon: ReactNode; label: string }[]>
     { to: '/admin', icon: <Settings className="w-[22px] h-[22px]" />, label: 'Painel Admin' },
     { to: '/orders', icon: <ClipboardList className="w-[22px] h-[22px]" />, label: 'Pedidos' },
     { to: '/my-orders', icon: <Receipt className="w-[22px] h-[22px]" />, label: 'Meus Pedidos' },
+    { to: '/driver', icon: <Bike className="w-[22px] h-[22px]" />, label: 'Entregas' },
     { to: '/kitchen', icon: <ChefHat className="w-[22px] h-[22px]" />, label: 'Cozinha' },
     { to: '/cashier', icon: <CreditCard className="w-[22px] h-[22px]" />, label: 'Caixa' },
     { to: '/cash-management', icon: <CreditCard className="w-[22px] h-[22px]" />, label: 'Gestão de Caixa' },
@@ -44,6 +46,9 @@ const navItems: Record<string, { to: string; icon: ReactNode; label: string }[]>
     { to: '/cash-management', icon: <CreditCard className="w-[22px] h-[22px]" />, label: 'Gestão de Caixa' },
     { to: '/history', icon: <History className="w-[22px] h-[22px]" />, label: 'Relatórios' },
   ],
+  entregador: [
+    { to: '/driver', icon: <Bike className="w-[22px] h-[22px]" />, label: 'Minhas Entregas' },
+  ],
 }
 
 const roleLabels: Record<string, string> = {
@@ -51,6 +56,7 @@ const roleLabels: Record<string, string> = {
   atendente: 'Atendente',
   cozinha: 'Cozinha',
   caixa: 'Caixa',
+  entregador: 'Entregador',
   cliente: 'Cliente',
 }
 
