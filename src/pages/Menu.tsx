@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
-import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck, Package, Clock, ChefHat, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
@@ -40,6 +40,7 @@ export default function Menu() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Row']['payment_method']>('pix')
   const [submitting, setSubmitting] = useState(false)
+  const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false)
   const clientOrderIdRef = useRef<string | null>(null)
 
   const [clientOrder, setClientOrder] = useState<{
@@ -58,7 +59,10 @@ export default function Menu() {
     fetchCategories()
     fetchProducts()
     const savedOrderId = localStorage.getItem('client-order-id')
-    if (savedOrderId) loadClientOrder(savedOrderId)
+    if (savedOrderId) {
+      loadClientOrder(savedOrderId)
+      setIsOrderTrackingOpen(true)
+    }
     const channel = supabase
       .channel('client-order-status')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
@@ -291,6 +295,7 @@ export default function Menu() {
       setCustomerName('')
       setCustomerPhone('')
       setIsCartOpen(false)
+      setIsOrderTrackingOpen(true)
     } catch (error) {
       const message = error && typeof error === 'object' && 'message' in error
         ? String((error as { message: unknown }).message)
@@ -327,78 +332,214 @@ export default function Menu() {
         </div>
       </header>
 
-      {clientOrder && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 mx-auto max-w-4xl">
-          <div className="mx-4 mb-4 rounded-2xl border border-amber-200 bg-white shadow-xl shadow-amber-500/10 overflow-hidden">
-            <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  'w-2.5 h-2.5 rounded-full',
-                  clientOrder.status === 'pendente' && 'bg-amber-400 animate-pulse',
-                  clientOrder.status === 'em_preparo' && 'bg-blue-500',
-                  clientOrder.status === 'pronto' && 'bg-emerald-500',
-                )} />
-                <span className="text-sm font-bold text-slate-900">
-                  Pedido #{clientOrder.orderNumber || '...'}
-                </span>
-                <span className={cn(
-                  'px-2 py-0.5 rounded-full text-xs font-semibold',
+      {/* ── Order Tracking Popup ── */}
+      <AnimatePresence>
+        {clientOrder && isOrderTrackingOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              onClick={() => setIsOrderTrackingOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md sm:max-h-[85vh] bg-white z-50 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="shrink-0 px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
+                      <Package className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900">Pedido #{clientOrder.orderNumber || '...'}</h2>
+                      <p className="text-xs text-slate-500">Acompanhe em tempo real</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsOrderTrackingOpen(false)}
+                    className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                  >
+                    <X className="w-5 h-5 text-slate-500" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Progress */}
+              <div className="shrink-0 px-5 py-4 bg-slate-50 border-b border-slate-200">
+                <div className="flex items-center justify-between relative">
+                  {/* Progress Line */}
+                  <div className="absolute top-5 left-0 right-0 h-1 bg-slate-200 rounded-full mx-8">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 rounded-full transition-all duration-500"
+                      style={{
+                        width: clientOrder.status === 'pendente' ? '0%' :
+                               clientOrder.status === 'em_preparo' ? '50%' :
+                               clientOrder.status === 'pronto' ? '100%' : '100%'
+                      }}
+                    />
+                  </div>
+
+                  {/* Status Steps */}
+                  <div className="flex flex-col items-center relative z-10">
+                    <div className={cn(
+                      'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                      clientOrder.status === 'pendente' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' :
+                      'bg-emerald-500 text-white'
+                    )}>
+                      {clientOrder.status === 'pendente' ? <Clock className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-600 mt-1.5">Pendente</span>
+                  </div>
+
+                  <div className="flex flex-col items-center relative z-10">
+                    <div className={cn(
+                      'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                      clientOrder.status === 'em_preparo' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' :
+                      clientOrder.status === 'pronto' || clientOrder.status === 'entregue' ? 'bg-emerald-500 text-white' :
+                      'bg-slate-200 text-slate-400'
+                    )}>
+                      <ChefHat className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-600 mt-1.5">Preparo</span>
+                  </div>
+
+                  <div className="flex flex-col items-center relative z-10">
+                    <div className={cn(
+                      'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                      clientOrder.status === 'pronto' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' :
+                      clientOrder.status === 'entregue' ? 'bg-emerald-500 text-white' :
+                      'bg-slate-200 text-slate-400'
+                    )}>
+                      <CheckCircle className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-600 mt-1.5">Pronto</span>
+                  </div>
+                </div>
+
+                {/* Status Message */}
+                <div className={cn(
+                  'mt-4 px-4 py-2.5 rounded-xl text-sm font-semibold text-center',
                   clientOrder.status === 'pendente' && 'bg-amber-100 text-amber-700',
                   clientOrder.status === 'em_preparo' && 'bg-blue-100 text-blue-700',
                   clientOrder.status === 'pronto' && 'bg-emerald-100 text-emerald-700',
                 )}>
-                  {clientOrder.status === 'pendente' && 'Pendente'}
-                  {clientOrder.status === 'em_preparo' && 'Em Preparo'}
-                  {clientOrder.status === 'pronto' && 'Pronto'}
-                </span>
-              </div>
-              {clientOrder.status === 'pendente' && (
-                <button onClick={cancelClientOrder} className="text-xs font-semibold text-crimson-500 hover:text-crimson-600 px-2 py-1 rounded-lg hover:bg-crimson-50 transition-colors">
-                  Cancelar
-                </button>
-              )}
-            </div>
-            <div className={cn(
-              'px-4 py-3 overflow-y-auto',
-              clientOrder.paymentMethod === 'pix' && clientOrder.paymentStatus !== 'pago' ? 'max-h-[75vh]' : 'max-h-40'
-            )}>
-              <div className="space-y-1.5">
-                {clientOrder.items.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">
-                      <span className="font-bold text-amber-600">{item.quantity}x</span> {item.product_name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
-                <span className="text-sm font-bold text-slate-900">Total</span>
-                <span className="text-base font-bold text-amber-600">{formatCurrency(clientOrder.total)}</span>
+                  {clientOrder.status === 'pendente' && '⏳ Aguardando confirmação...'}
+                  {clientOrder.status === 'em_preparo' && '👨‍🍳 Seu pedido está sendo preparado!'}
+                  {clientOrder.status === 'pronto' && '✅ Seu pedido está pronto!'}
+                </div>
               </div>
 
-              {clientOrder.paymentMethod === 'pix' && (
-                <div className="mt-3">
-                  {clientOrder.paymentStatus === 'pago' ? (
-                    <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 py-3 text-sm font-bold text-emerald-700">
-                      <ShieldCheck className="h-5 w-5" /> Pagamento Pix confirmado
-                    </div>
-                  ) : clientOrder.pixPayload ? (
-                    <PixQRCode
-                      payload={clientOrder.pixPayload}
-                      qrCodeBase64={clientOrder.pixQrCodeBase64}
-                      amount={clientOrder.total}
-                      orderId={clientOrder.id}
-                      paymentStatus="pendente"
-                      compact
-                    />
-                  ) : (
-                    <p className="text-center text-xs text-slate-500">Aguardando código de pagamento...</p>
-                  )}
+              {/* Order Details */}
+              <div className="flex-1 overflow-y-auto px-5 py-4">
+                {/* Items */}
+                <div className="mb-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Itens do Pedido</h3>
+                  <div className="space-y-2">
+                    {clientOrder.items.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="w-7 h-7 bg-amber-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
+                            {item.quantity}x
+                          </span>
+                          <span className="text-sm font-medium text-slate-700">{item.product_name}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
+
+                {/* Total */}
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-600">Total</span>
+                    <span className="text-2xl font-extrabold text-amber-600">{formatCurrency(clientOrder.total)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-slate-500">Pagamento</span>
+                    <span className="text-xs font-semibold text-slate-700 capitalize">{clientOrder.paymentMethod.replace('_', ' ')}</span>
+                  </div>
+                </div>
+
+                {/* PIX Section */}
+                {clientOrder.paymentMethod === 'pix' && (
+                  <div className="border border-slate-200 rounded-2xl p-4">
+                    {clientOrder.paymentStatus === 'pago' ? (
+                      <div className="flex items-center justify-center gap-2 py-4 text-emerald-600">
+                        <ShieldCheck className="h-6 w-6" />
+                        <span className="font-bold">Pagamento confirmado!</span>
+                      </div>
+                    ) : clientOrder.pixPayload ? (
+                      <PixQRCode
+                        payload={clientOrder.pixPayload}
+                        qrCodeBase64={clientOrder.pixQrCodeBase64}
+                        amount={clientOrder.total}
+                        orderId={clientOrder.id}
+                        paymentStatus="pendente"
+                        compact
+                      />
+                    ) : (
+                      <p className="text-center text-sm text-slate-500 py-4">Aguardando código PIX...</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="shrink-0 px-5 py-4 border-t border-slate-200 bg-white">
+                {clientOrder.status === 'pendente' ? (
+                  <button
+                    onClick={cancelClientOrder}
+                    className="w-full py-3 bg-crimson-500 hover:bg-crimson-600 text-white font-semibold rounded-xl transition-colors"
+                  >
+                    Cancelar Pedido
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsOrderTrackingOpen(false)}
+                    className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition-colors"
+                  >
+                    Continuar Pedindo
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Floating Order Button (when popup is closed) ── */}
+      {clientOrder && !isOrderTrackingOpen && (
+        <motion.button
+          initial={{ y: 24, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          onClick={() => setIsOrderTrackingOpen(true)}
+          className="fixed bottom-4 left-4 right-4 z-40 mx-auto flex max-w-4xl items-center justify-between rounded-2xl bg-white border-2 border-amber-500 px-5 py-3.5 text-slate-900 shadow-xl transition-all hover:shadow-2xl"
+        >
+          <span className="flex items-center gap-3">
+            <span className={cn(
+              'w-3 h-3 rounded-full',
+              clientOrder.status === 'pendente' && 'bg-amber-400 animate-pulse',
+              clientOrder.status === 'em_preparo' && 'bg-blue-500',
+              clientOrder.status === 'pronto' && 'bg-emerald-500',
+            )} />
+            <span className="text-left">
+              <span className="block text-xs text-slate-500">Pedido #{clientOrder.orderNumber}</span>
+              <span className="block text-sm font-bold">
+                {clientOrder.status === 'pendente' && 'Pendente'}
+                {clientOrder.status === 'em_preparo' && 'Em Preparo'}
+                {clientOrder.status === 'pronto' && 'Pronto!'}
+              </span>
+            </span>
+          </span>
+          <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">Toque para ver</span>
+        </motion.button>
       )}
 
       <div className="max-w-4xl mx-auto px-4 py-4 pb-24">
