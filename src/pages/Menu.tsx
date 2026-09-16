@@ -382,9 +382,9 @@ export default function Menu() {
                className="fixed bottom-0 left-0 right-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md h-[90dvh] sm:h-auto sm:max-h-[90dvh] bg-white z-50 rounded-t-[24px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
             >
               {/* Header */}
-              <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 pb-5 pt-3">
-                <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-300" aria-hidden="true" />
-                <div className="flex min-h-[60px] items-center justify-between gap-3">
+              <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 pb-5 pt-4">
+                <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300" aria-hidden="true" />
+                <div className="flex min-h-[64px] items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500">
                       <Package className="h-5 w-5 text-white" />
@@ -404,7 +404,7 @@ export default function Menu() {
               </div>
 
               {/* Status Progress */}
-              <div className="shrink-0 px-5 py-4 bg-slate-50 border-b border-slate-200">
+              <div className="shrink-0 px-5 py-5 bg-slate-50 border-b border-slate-200">
                 <div className="flex items-center justify-between relative">
                   {/* Progress Line */}
                   <div className="absolute top-5 left-0 right-0 h-1 bg-slate-200 rounded-full mx-8">
@@ -741,8 +741,8 @@ export default function Menu() {
           >
             {/* Header */}
              <div className="shrink-0 border-b border-slate-200 bg-white px-5 pb-4 pt-3">
-               <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300" aria-hidden="true" />
-               <div className="flex min-h-[60px] items-center justify-between gap-3">
+               <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300" aria-hidden="true" />
+               <div className="flex min-h-[64px] items-center justify-between gap-3">
                  <div className="flex min-w-0 items-center gap-3">
                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-50">
                      <ShoppingCart className="h-5 w-5 text-amber-500" />
@@ -759,7 +759,7 @@ export default function Menu() {
              </div>
 
             {/* Items */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+             <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-3">
               {cart.length === 0 ? (
                 <div className="text-center py-16 text-slate-400">
                   <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
