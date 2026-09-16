@@ -82,12 +82,16 @@ body {
 
 /* Persistent order status bar: keep it visible above browser content and system bars. */
 .order-status-float {
-  position: fixed;
-  z-index: 60;
-  bottom: 16px;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  left: 16px;
-  right: 16px;
+  position: fixed !important;
+  z-index: 60 !important;
+  width: calc(100% - 32px);
+  max-width: 896px;
+  margin-left: auto;
+  margin-right: auto;
+  bottom: 16px !important;
+  bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  left: 16px !important;
+  right: 16px !important;
 }
 
 /* Keeps mobile sheets compact without changing the desktop composition. */
