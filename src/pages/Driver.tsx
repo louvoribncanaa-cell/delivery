@@ -30,8 +30,9 @@ export default function Driver() {
   async function loadOrders() {
     const { data } = await supabase.from('orders').select('*').eq('status', 'pronto').eq('archived', false).order('created_at')
     if (data) {
-      setOrders(data)
-      setSelected((current) => current ? data.find((order) => order.id === current.id) || current : null)
+      const deliveryOrders = data.filter((order) => order.table_or_address?.trim() && order.table_or_address.toLowerCase() !== 'retirada no estabelecimento')
+      setOrders(deliveryOrders)
+      setSelected((current) => current ? deliveryOrders.find((order) => order.id === current.id) || current : null)
     }
   }
 

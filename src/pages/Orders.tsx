@@ -55,6 +55,7 @@ export default function Orders() {
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [tableOrAddress, setTableOrAddress] = useState('')
+  const [isDelivery, setIsDelivery] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Insert']['payment_method']>('pix')
   const [submitting, setSubmitting] = useState(false)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
@@ -178,6 +179,10 @@ export default function Orders() {
       toast.error('Adicione itens ao pedido')
       return
     }
+    if (isDelivery && !tableOrAddress.trim()) {
+      toast.error('Informe o endereço de entrega')
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -210,7 +215,7 @@ export default function Orders() {
         id: orderId,
         customer_name: customerName,
         customer_phone: customerPhone,
-        table_or_address: tableOrAddress,
+        table_or_address: isDelivery ? tableOrAddress : 'Retirada no estabelecimento',
         total,
         payment_method: paymentMethod,
         payment_status: 'pendente' as const,
@@ -289,6 +294,7 @@ export default function Orders() {
       setCustomerName('')
       setCustomerPhone('')
       setTableOrAddress('')
+      setIsDelivery(false)
       setIsCartOpen(false)
       fetchRecentOrders()
     } catch (error) {
@@ -586,13 +592,15 @@ export default function Orders() {
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:border-amber-500"
                       />
-                      <input
-                        type="text"
-                        placeholder="Mesa ou endereço"
-                        value={tableOrAddress}
-                        onChange={(e) => setTableOrAddress(e.target.value)}
-                        className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:border-amber-500"
-                      />
+                      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                        <input type="checkbox" checked={isDelivery} onChange={(e) => setIsDelivery(e.target.checked)} className="h-4 w-4 accent-amber-500" />
+                        Enviar para entrega
+                      </label>
+                      {isDelivery ? (
+                        <input type="text" placeholder="Endereço completo de entrega *" value={tableOrAddress} onChange={(e) => setTableOrAddress(e.target.value)} className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:border-amber-500" />
+                      ) : (
+                        <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">Pedido será retirado no estabelecimento e não aparecerá para o entregador.</p>
+                      )}
 
                       <div>
                         <p className="mb-2 text-sm font-semibold text-slate-700">Forma de pagamento</p>
