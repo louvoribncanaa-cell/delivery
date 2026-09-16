@@ -683,18 +683,14 @@ export default function Menu() {
                           <Plus className="w-4 h-4" />
                         </button>
                       </div>
-                    ) : (
+                    ) : isCashRegisterOpen ? (
                       <button
                         onClick={() => addToCart(product)}
-                        disabled={!isCashRegisterOpen}
-                        className={cn(
-                          'py-1.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-1',
-                          isCashRegisterOpen ? 'bg-amber-500 text-white hover:bg-amber-600' : 'cursor-not-allowed bg-slate-200 text-slate-500'
-                        )}
+                        className="py-1.5 px-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 bg-amber-500 text-white hover:bg-amber-600"
                       >
-                        <Plus className="w-4 h-4" /> {isCashRegisterOpen ? 'Adicionar' : 'Caixa fechado'}
+                        <Plus className="w-4 h-4" /> Adicionar
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </motion.div>
