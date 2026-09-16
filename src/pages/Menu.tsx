@@ -51,6 +51,7 @@ export default function Menu() {
     paymentMethod: Database['public']['Tables']['orders']['Row']['payment_method']
     paymentStatus: Database['public']['Tables']['orders']['Row']['payment_status']
     pixPayload?: string
+    pixQrCodeBase64?: string
   } | null>(null)
 
   useEffect(() => {
@@ -271,6 +272,23 @@ export default function Menu() {
       })
       // Busca o nº do pedido no servidor e confirma o payload gravado
       loadClientOrder(orderId)
+
+      // Tenta criar pagamento via gateway (Mercado Pago) para QR Code dinâmico
+      if (paymentMethod === 'pix' && pixPayload) {
+        try {
+          const { data: gwData, error: gwError } = await supabase.functions.invoke(
+            'create-pix-payment',
+            { body: { order_id: orderId } }
+          )
+          if (!gwError && gwData?.qr_code_base64) {
+            setClientOrder((prev) =>
+              prev ? { ...prev, pixQrCodeBase64: gwData.qr_code_base64 } : prev
+            )
+          }
+        } catch {
+          // Gateway não configurado — usa fallback BR Code local
+        }
+      }
       setCart([])
       setCustomerName('')
       setCustomerPhone('')
@@ -369,6 +387,7 @@ export default function Menu() {
                   ) : clientOrder.pixPayload ? (
                     <PixQRCode
                       payload={clientOrder.pixPayload}
+                      qrCodeBase64={clientOrder.pixQrCodeBase64}
                       amount={clientOrder.total}
                       orderId={clientOrder.id}
                       paymentStatus="pendente"

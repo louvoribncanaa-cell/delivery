@@ -30,6 +30,7 @@ interface PixPayment {
   orderNumber: number
   amount: number
   payload: string
+  qrCodeBase64?: string
 }
 
 function createOrderId() {
@@ -267,11 +268,26 @@ export default function Orders() {
 
       // Painel do atendente: abre o QR Code Pix para leitura pelo celular do cliente
       if (paymentMethod === 'pix' && pixPayload) {
+        // Tenta criar pagamento via gateway (Mercado Pago) para QR Code dinâmico
+        let qrCodeBase64: string | undefined
+        try {
+          const { data: gwData, error: gwError } = await supabase.functions.invoke(
+            'create-pix-payment',
+            { body: { order_id: order.id } }
+          )
+          if (!gwError && gwData?.qr_code_base64) {
+            qrCodeBase64 = gwData.qr_code_base64
+          }
+        } catch {
+          // Gateway não configurado ou erro — usa fallback BR Code local
+        }
+
         setPixPayment({
           orderId: order.id,
           orderNumber: order.order_number,
           amount: total,
           payload: pixPayload,
+          qrCodeBase64,
         })
       }
 
@@ -664,6 +680,7 @@ export default function Orders() {
         {pixPayment && (
           <PixQRCode
             payload={pixPayment.payload}
+            qrCodeBase64={pixPayment.qrCodeBase64}
             amount={pixPayment.amount}
             orderId={pixPayment.orderId}
             paymentStatus="pendente"

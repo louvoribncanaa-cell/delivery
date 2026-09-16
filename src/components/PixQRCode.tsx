@@ -6,8 +6,10 @@ import { usePixPaymentStatus } from '../lib/pix'
 import type { PaymentStatus } from '../lib/pix'
 
 interface PixQRCodeProps {
-  /** Payload Pix (BR Code / Copia e Cola) */
-  payload: string
+  /** Payload Pix (BR Code / Copia e Cola) — usado quando não há gateway */
+  payload?: string
+  /** Imagem Base64 do QR Code gerada pelo gateway (Mercado Pago) */
+  qrCodeBase64?: string
   /** Valor exato do pedido, usado só para exibição */
   amount: number
   /** ID do pedido: quando presente, o status é atualizado em tempo real */
@@ -23,6 +25,7 @@ interface PixQRCodeProps {
 
 export default function PixQRCode({
   payload,
+  qrCodeBase64,
   amount,
   orderId,
   paymentStatus = 'pendente',
@@ -35,7 +38,11 @@ export default function PixQRCode({
   const liveStatus = usePixPaymentStatus(orderId, paymentStatus)
   const isPaid = liveStatus === 'pago'
 
+  // QR Code do gateway: usa Base64 direto
+  const hasGatewayQr = Boolean(qrCodeBase64)
+
   useEffect(() => {
+    if (hasGatewayQr || !payload) return
     let cancelled = false
     QRCodeLib.toDataURL(payload, {
       errorCorrectionLevel: 'M',
@@ -52,12 +59,16 @@ export default function PixQRCode({
     return () => {
       cancelled = true
     }
-  }, [payload, compact])
+  }, [payload, compact, hasGatewayQr])
 
-  const showQr = qrState?.payload === payload && qrState.status === 'ok'
-  const qrFailed = qrState?.payload === payload && qrState.status === 'error'
+  const showQr = hasGatewayQr || (qrState?.payload === payload && qrState?.status === 'ok')
+  const qrFailed = !hasGatewayQr && qrState?.payload === payload && qrState?.status === 'error'
+  const qrUrl = hasGatewayQr
+    ? `data:image/png;base64,${qrCodeBase64}`
+    : qrState?.url
 
   async function copyPayload() {
+    if (!payload) return
     try {
       await navigator.clipboard.writeText(payload)
     } catch {
@@ -110,9 +121,9 @@ export default function PixQRCode({
         </div>
 
         <div className={cn('mt-4 flex items-center justify-center', compact ? 'h-48' : 'h-64')}>
-          {showQr && qrState?.url ? (
+          {showQr && qrUrl ? (
             <img
-              src={qrState.url}
+              src={qrUrl}
               alt="QR Code Pix"
               className={cn(
                 'h-full object-contain',
@@ -129,7 +140,7 @@ export default function PixQRCode({
           )}
         </div>
 
-        {!isPaid && (
+        {!isPaid && payload && (
           <button
             onClick={copyPayload}
             className={cn(
@@ -145,9 +156,11 @@ export default function PixQRCode({
           </button>
         )}
 
-        <div className={cn('mt-3 overflow-x-auto rounded-lg bg-slate-50 p-2', compact ? 'text-[10px]' : 'text-xs')}>
-          <p className="whitespace-pre-wrap break-all text-center font-mono text-slate-500">{payload}</p>
-        </div>
+        {payload && (
+          <div className={cn('mt-3 overflow-x-auto rounded-lg bg-slate-50 p-2', compact ? 'text-[10px]' : 'text-xs')}>
+            <p className="whitespace-pre-wrap break-all text-center font-mono text-slate-500">{payload}</p>
+          </div>
+        )}
       </div>
 
       {showInstructions && !isPaid && (

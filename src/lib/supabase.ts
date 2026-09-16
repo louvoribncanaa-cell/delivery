@@ -111,6 +111,7 @@ export type Database = {
           pix_copy_paste: string | null
           pix_txid: string | null
           pix_expires_at: string | null
+          pix_payment_id: string | null
           created_at: string
         }
         Insert: {
@@ -128,6 +129,7 @@ export type Database = {
           pix_copy_paste?: string | null
           pix_txid?: string | null
           pix_expires_at?: string | null
+          pix_payment_id?: string | null
           created_at?: string
         }
         Update: {
@@ -145,6 +147,7 @@ export type Database = {
           pix_copy_paste?: string | null
           pix_txid?: string | null
           pix_expires_at?: string | null
+          pix_payment_id?: string | null
           created_at?: string
         }
       }
@@ -175,6 +178,38 @@ export type Database = {
           pix_key?: string
           merchant_name?: string
           merchant_city?: string
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pix_gateway_config: {
+        Row: {
+          id: string
+          provider: string
+          access_token: string
+          webhook_secret: string | null
+          environment: 'sandbox' | 'production'
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          provider?: string
+          access_token: string
+          webhook_secret?: string | null
+          environment?: 'sandbox' | 'production'
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          provider?: string
+          access_token?: string
+          webhook_secret?: string | null
+          environment?: 'sandbox' | 'production'
           active?: boolean
           created_at?: string
           updated_at?: string

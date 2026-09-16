@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
 import Modal from '../components/Modal'
 import PixQRCode from '../components/PixQRCode'
+import AdminPixGateway from '../components/AdminPixGateway'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { formatCurrency, cn } from '../lib/utils'
@@ -20,7 +21,7 @@ type Product = Database['public']['Tables']['products']['Row']
 type Category = Database['public']['Tables']['categories']['Row']
 type Profile = Database['public']['Tables']['profiles']['Row']
 
-type Tab = 'products' | 'categories' | 'users' | 'pix'
+type Tab = 'products' | 'categories' | 'users' | 'pix' | 'gateway'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrador',
@@ -408,6 +409,7 @@ export default function Admin() {
     { key: 'categories', label: 'Categorias', icon: <Tag className="w-4 h-4" /> },
     { key: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
     { key: 'pix', label: 'Pix', icon: <QrCode className="w-4 h-4" /> },
+    { key: 'gateway', label: 'Gateway PIX', icon: <Settings className="w-4 h-4" /> },
   ] as const
 
   if (loading) {
@@ -765,6 +767,13 @@ export default function Admin() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Gateway Tab */}
+      {activeTab === 'gateway' && (
+        <div className="max-w-2xl">
+          <AdminPixGateway />
         </div>
       )}
 
