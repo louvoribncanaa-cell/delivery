@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck, Package, Clock, ChefHat, CheckCircle, CreditCard, Banknote, QrCode, MapPin, LocateFixed } from 'lucide-react'
+import { Search, ShoppingCart, Plus, Minus, Trash2, Send, X, Utensils, ShieldCheck, Package, Clock, ChefHat, CheckCircle, CreditCard, Banknote, QrCode, MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PixQRCode from '../components/PixQRCode'
 import { supabase } from '../lib/supabase'
@@ -40,7 +40,6 @@ export default function Menu() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [fulfillment, setFulfillment] = useState<'retirada' | 'entrega'>('retirada')
   const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [locating, setLocating] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Row']['payment_method']>('pix')
   const [submitting, setSubmitting] = useState(false)
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false)
@@ -179,29 +178,6 @@ export default function Menu() {
   const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
-  function useCurrentLocation() {
-    if (!navigator.geolocation) {
-      toast.error('Seu navegador não oferece localização')
-      return
-    }
-    setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const gps = `GPS: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
-        setDeliveryAddress((current) => {
-          const readableAddress = current.replace(/\s*\|\s*GPS:.*$/i, '').trim()
-          return readableAddress ? `${readableAddress} | ${gps}` : `Localização atual | ${gps}`
-        })
-        setLocating(false)
-        toast.success('Localização adicionada sem apagar o endereço')
-      },
-      () => {
-        setLocating(false)
-        toast.error('Não foi possível obter sua localização')
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }
 
   async function submitOrder() {
     if (!isCashRegisterOpen) {
@@ -836,10 +812,6 @@ export default function Menu() {
                    {fulfillment === 'entrega' && (
                      <div className="mt-3 space-y-2">
                        <textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Digite o endereço completo da entrega *" rows={2} className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-teal-600 focus:outline-none" />
-                       <button type="button" onClick={useCurrentLocation} disabled={locating} className="min-h-12 w-full rounded-xl border border-teal-200 bg-teal-50 px-4 text-sm font-semibold text-teal-700 flex items-center justify-center gap-2 disabled:opacity-60">
-                         {locating ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-teal-600 border-t-transparent" /> : <LocateFixed className="w-4 h-4" />}
-                         {locating ? 'Obtendo localização...' : 'Usar minha localização atual'}
-                       </button>
                      </div>
                    )}
                  </div>
