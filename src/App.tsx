@@ -7,6 +7,7 @@ import Orders from './pages/Orders'
 import Menu from './pages/Menu'
 import Kitchen from './pages/Kitchen'
 import Cashier from './pages/Cashier'
+import CashManagement from './pages/CashManagement'
 import Admin from './pages/Admin'
 import History from './pages/History'
 import MyOrders from './pages/MyOrders'
@@ -76,7 +77,7 @@ function AppRoutes() {
 
       <Route path="/cash-management" element={
         <ProtectedRoute allowedRoles={['caixa', 'admin']}>
-          <Cashier title="Gestão de Caixa" />
+          <CashManagement />
         </ProtectedRoute>
       } />
 
