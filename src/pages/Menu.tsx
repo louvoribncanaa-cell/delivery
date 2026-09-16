@@ -187,9 +187,13 @@ export default function Menu() {
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        setDeliveryAddress(`Localização atual: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`)
+        const gps = `GPS: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
+        setDeliveryAddress((current) => {
+          const readableAddress = current.replace(/\s*\|\s*GPS:.*$/i, '').trim()
+          return readableAddress ? `${readableAddress} | ${gps}` : `Localização atual | ${gps}`
+        })
         setLocating(false)
-        toast.success('Localização adicionada')
+        toast.success('Localização adicionada sem apagar o endereço')
       },
       () => {
         setLocating(false)
