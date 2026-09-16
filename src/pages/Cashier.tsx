@@ -232,9 +232,18 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
                 </p>
               )}
               {!isOpen && (
-                <p className="text-[14px] mt-1" style={{ color: '#b91c1c' }}>
-                  Abra o caixa para iniciar as vendas
-                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <p className="text-[14px]" style={{ color: '#b91c1c' }}>
+                    Abra o caixa para iniciar as vendas
+                  </p>
+                  <button
+                    onClick={() => setIsOpenModalOpen(true)}
+                    className="rounded-xl px-4 py-2 text-sm font-bold text-white shadow-md transition hover:brightness-95"
+                    style={{ background: 'linear-gradient(135deg, #14917a, #0d7c67)' }}
+                  >
+                    Abrir Caixa
+                  </button>
+                </div>
               )}
             </div>
           </div>
