@@ -133,11 +133,11 @@ export default function Menu() {
     if (data) setProducts(data)
   }
 
-  const filteredProducts = products.filter((p) => {
+  const filteredProducts = isCashRegisterOpen ? products.filter((p) => {
     const matchesCategory = !selectedCategory || p.category_id === selectedCategory
     const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase())
     return matchesCategory && matchesSearch
-  })
+  }) : []
 
   function addToCart(product: Product) {
     if (!isCashRegisterOpen) {
@@ -339,8 +339,12 @@ export default function Menu() {
   }
 
   const cashierClosedNotice = !isCashRegisterOpen && (
-    <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-      <strong>Cardápio em modo consulta.</strong> Os itens continuam visíveis, mas adicionar produtos e finalizar pedidos ficam disponíveis quando o caixa for aberto.
+    <div className="flex min-h-[55vh] flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+        <Clock className="h-8 w-8" />
+      </div>
+      <h2 className="text-xl font-bold text-slate-900">Cardápio temporariamente fechado</h2>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">O caixa está fechado no momento. O cardápio e os pedidos voltarão a aparecer assim que o atendimento for iniciado.</p>
     </div>
   )
 
@@ -578,7 +582,7 @@ export default function Menu() {
       <div className="max-w-4xl mx-auto px-4 py-4 pb-24">
         {cashierClosedNotice}
         {/* Search */}
-        <div className="relative mb-4">
+        <div className={cn('relative mb-4', !isCashRegisterOpen && 'hidden')}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input
             type="text"
@@ -590,7 +594,7 @@ export default function Menu() {
         </div>
 
         {/* Categories */}
-        <div className="mb-5 -mx-4 overflow-x-auto px-4 pb-3">
+        <div className={cn('mb-5 -mx-4 overflow-x-auto px-4 pb-3', !isCashRegisterOpen && 'hidden')}>
           <div className="flex min-w-max gap-1.5">
             <button
               onClick={() => setSelectedCategory('')}
