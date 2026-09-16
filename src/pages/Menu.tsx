@@ -195,24 +195,22 @@ export default function Menu() {
       let pixPayload: string | null = null
       if (paymentMethod === 'pix') {
         if (!pixConfig || !pixConfig.active) {
-          toast.error('Pagamento via Pix indisponível no momento: chave não configurada pela loja')
-          setSubmitting(false)
-          return
+          toast('Pix não configurado — pedido será enviado sem QR Code', { icon: '⚠️' })
+        } else {
+          const result = buildPixPayload({
+            keyType: pixConfig.key_type,
+            pixKey: pixConfig.pix_key,
+            merchantName: pixConfig.merchant_name,
+            merchantCity: pixConfig.merchant_city,
+            amount: total,
+            txid: defaultTxid(orderId),
+          })
+          if (!result.payload) {
+            toast('Não foi possível gerar QR Code Pix — pedido enviado sem ele', { icon: '⚠️' })
+          } else {
+            pixPayload = result.payload
+          }
         }
-        const result = buildPixPayload({
-          keyType: pixConfig.key_type,
-          pixKey: pixConfig.pix_key,
-          merchantName: pixConfig.merchant_name,
-          merchantCity: pixConfig.merchant_city,
-          amount: total,
-          txid: defaultTxid(orderId),
-        })
-        if (!result.payload) {
-          toast.error(result.error || 'Não foi possível gerar o QR Code Pix')
-          setSubmitting(false)
-          return
-        }
-        pixPayload = result.payload
       }
 
       const insertData: {
