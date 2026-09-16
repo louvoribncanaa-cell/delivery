@@ -238,7 +238,7 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
               )}
             </div>
           </div>
-          {!dailyOnly && <div>
+          {(!dailyOnly || !isOpen) && <div>
             {isOpen ? (
               <motion.button
                 whileTap={{ scale: 0.96 }}
