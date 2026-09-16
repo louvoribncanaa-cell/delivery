@@ -330,7 +330,7 @@ export default function Cashier() {
 
       {/* ── Filters ── */}
       <div className="mb-6 rounded-[22px] border border-slate-200/60 p-5" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}>
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
@@ -342,7 +342,7 @@ export default function Cashier() {
             />
           </div>
 
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4">
             <div className="flex flex-col gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status</span>
               <div className="flex flex-wrap gap-2">
@@ -362,8 +362,6 @@ export default function Cashier() {
                 ))}
               </div>
             </div>
-
-            <div className="hidden lg:block w-px h-10 bg-slate-200" />
 
             <div className="flex flex-col gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pagamento</span>
@@ -385,7 +383,7 @@ export default function Cashier() {
               </div>
             </div>
 
-            <div className="lg:ml-auto">
+            <div className="sm:ml-auto">
               <button onClick={clearOrdersFromScreen} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-slate-700 transition-colors">
                 <Trash2 className="h-4 w-4" /> Limpar tela
               </button>
@@ -396,7 +394,7 @@ export default function Cashier() {
 
       {/* ── Order Cards Grid ── */}
       <div className="mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredOrders.map((order) => {
             const sc = statusColors[order.status] || statusColors.pendente
             return (
