@@ -154,7 +154,7 @@ export default function Login() {
           transition={{ delay: 0.8 }}
           className="text-center text-xs text-slate-600 mt-8"
         >
-          v1.0 • Antigravity Projetos
+          v1.7 • JFC-Tecch
         </motion.p>
       </motion.div>
     </div>
