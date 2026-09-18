@@ -169,12 +169,13 @@ export default function MyOrders() {
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por cliente ou nº do pedido..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-14 pr-3 text-sm focus:outline-none focus:border-amber-500"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-3 text-sm focus:outline-none focus:border-amber-500"
+            style={{ paddingLeft: '64px' }}
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">

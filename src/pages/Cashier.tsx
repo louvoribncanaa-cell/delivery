@@ -417,13 +417,14 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
       <div className="mb-6 rounded-[22px] border border-slate-200/60 p-5" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}>
         <div className="flex flex-col gap-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar por nome ou nº do pedido..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl text-[14px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-[#14917a] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,145,130,0.1)] transition-all"
+              className="w-full pr-4 py-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl text-[14px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-[#14917a] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,145,130,0.1)] transition-all"
+              style={{ paddingLeft: '64px' }}
             />
           </div>
 
