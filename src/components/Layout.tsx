@@ -18,9 +18,11 @@ import {
   Plus,
   BarChart3,
   Bike,
+  Moon,
+  Sun,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const navItems: Record<string, { to: string; icon: ReactNode; label: string }[]> = {
   admin: [
@@ -72,6 +74,14 @@ export default function Layout({ children, title }: LayoutProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return window.localStorage.getItem('delivery-theme') !== 'light'
+  })
+
+  useEffect(() => {
+    window.localStorage.setItem('delivery-theme', darkMode ? 'dark' : 'light')
+  }, [darkMode])
 
   const items = (() => {
     const seen = new Set<string>()
@@ -98,7 +108,7 @@ export default function Layout({ children, title }: LayoutProps) {
   }
 
   const sidebar = (
-    <aside className="hidden lg:flex flex-col w-[280px] bg-[#0c1524] text-white">
+    <aside className="hidden lg:flex flex-col w-[260px] bg-[#111113] text-white border-r border-white/[0.08]">
       <div className="px-7 pt-7 pb-6 border-b border-white/[0.06]">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-[14px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #14917a, #0d7c67)' }}>
@@ -168,7 +178,7 @@ export default function Layout({ children, title }: LayoutProps) {
   )
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#f0f4f8' }}>
+      <div className={`min-h-screen flex ${darkMode ? 'delivery-dark' : 'delivery-light'}`} style={{ background: darkMode ? '#09090b' : '#f4f4f5' }}>
       {sidebar}
 
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#0c1524] text-white px-4 py-3 flex items-center justify-between">
@@ -243,10 +253,10 @@ export default function Layout({ children, title }: LayoutProps) {
         )}
       </AnimatePresence>
 
-      <main className="min-w-0 flex-1" style={{ background: '#f0f4f8' }}>
+      <main className="min-w-0 flex-1" style={{ background: '#09090b' }}>
         <div className="lg:hidden h-14" />
 
-        <div className="hidden lg:flex h-[84px] items-center border-b border-slate-200/60 px-8" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)' }}>
+        <div className="hidden lg:flex h-[84px] items-center border-b border-white/[0.08] px-8" style={{ background: 'rgba(17,17,19,0.9)', backdropFilter: 'blur(12px)' }}>
           <div className="w-full max-w-[1600px] mx-auto flex items-center gap-6">
             <div className="flex-1 max-w-xl">
               <div className="relative">
@@ -266,6 +276,13 @@ export default function Layout({ children, title }: LayoutProps) {
               </button>
               <button className="p-3 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
                 <HelpCircle className="w-[20px] h-[20px]" />
+              </button>
+              <button
+                onClick={() => setDarkMode((current) => !current)}
+                aria-label={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                className="p-3 rounded-xl text-slate-500 hover:bg-white/[0.08] hover:text-white transition-colors"
+              >
+                {darkMode ? <Sun className="w-[20px] h-[20px]" /> : <Moon className="w-[20px] h-[20px]" />}
               </button>
               <button
                 className="ml-2 flex items-center gap-2 h-11 px-5 rounded-xl text-white font-semibold text-[13px] shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"

@@ -439,10 +439,10 @@ export default function Admin() {
     <Layout title="Administração">
       {/* Atalhos principais */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold text-slate-900 mb-3">Acesso rápido</h2>
+         <h2 className="text-lg font-bold text-white mb-3">Acesso rápido</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { to: '/orders', label: 'Pedidos', description: 'Criar e acompanhar pedidos', icon: <Package className="w-5 h-5" />, color: 'bg-amber-500' },
+            { to: '/orders', label: 'Pedidos', description: 'Criar e acompanhar pedidos', icon: <Package className="w-5 h-5" />, color: 'bg-emerald-500' },
             { to: '/kitchen', label: 'Cozinha', description: 'Acompanhar preparo', icon: <Settings className="w-5 h-5" />, color: 'bg-blue-500' },
             { to: '/cashier', label: 'Caixa', description: 'Pagamentos e faturamento', icon: <Users className="w-5 h-5" />, color: 'bg-emerald-500' },
             { to: '/menu', label: 'Cardápio', description: 'Visualizar cardápio público', icon: <Tag className="w-5 h-5" />, color: 'bg-purple-500' },
@@ -450,12 +450,12 @@ export default function Admin() {
             <Link
               key={shortcut.to}
               to={shortcut.to}
-              className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
+             className="bg-[#181b20] border border-zinc-800/60 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-emerald-500/60 transition-all"
             >
               <div className={`w-10 h-10 ${shortcut.color} text-white rounded-xl flex items-center justify-center mb-3`}>
                 {shortcut.icon}
               </div>
-              <p className="font-semibold text-slate-900">{shortcut.label}</p>
+               <p className="font-semibold text-white">{shortcut.label}</p>
               <p className="text-xs text-slate-500 mt-1">{shortcut.description}</p>
             </Link>
           ))}
@@ -469,10 +469,10 @@ export default function Admin() {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap',
+               'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
               activeTab === tab.key
                 ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
-                : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-300'
+                 : 'bg-[#181b20] text-zinc-400 border border-zinc-800/60 hover:border-emerald-500/60'
             )}
           >
             {tab.icon}
@@ -485,11 +485,11 @@ export default function Admin() {
       {activeTab === 'products' && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900">Produtos ({products.length})</h2>
+             <h2 className="text-lg font-bold text-white">Produtos ({products.length})</h2>
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => openProductModal()}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors"
+               className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
             >
               <Plus className="w-4 h-4" /> Novo Produto
             </motion.button>
@@ -499,9 +499,9 @@ export default function Admin() {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4"
+                 className="bg-[#181b20] rounded-xl border border-zinc-800/60 p-4 flex items-center gap-4 mb-1"
               >
-                <div className="w-14 h-14 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                 <div className="w-16 h-16 bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                   {product.image_url ? (
                     <img src={product.image_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -509,16 +509,16 @@ export default function Admin() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-slate-900 truncate">{product.name}</h3>
-                  <p className="text-sm text-amber-600 font-bold">{formatCurrency(product.price)}</p>
-                  <p className="text-xs text-slate-500 truncate">{product.description}</p>
+                   <h3 className="font-semibold text-white truncate">{product.name}</h3>
+                   <p className="text-sm text-emerald-400 font-bold">{formatCurrency(product.price)}</p>
+                   <p className="text-xs text-zinc-400 truncate">{product.description}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => toggleProductAvailability(product)}
                     className={cn(
-                      'p-2 rounded-lg transition-colors',
-                      product.available ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'
+                       'p-2 rounded-lg transition-colors',
+                       product.available ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-zinc-500 hover:bg-zinc-800'
                     )}
                     title={product.available ? 'Disponível' : 'Indisponível'}
                   >
@@ -526,13 +526,13 @@ export default function Admin() {
                   </button>
                   <button
                     onClick={() => openProductModal(product)}
-                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+                     className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 transition-colors"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => deleteProduct(product.id)}
-                    className="p-2 hover:bg-crimson-50 rounded-lg text-crimson-500 transition-colors"
+                     className="p-2 hover:bg-rose-500/10 rounded-lg text-rose-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

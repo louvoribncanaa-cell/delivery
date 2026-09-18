@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -51,7 +52,7 @@
   --color-bg: #f8fafc;
   --color-bg-dark: #0f172a;
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
 * {
@@ -71,8 +72,8 @@ body,
 body {
   font-family: var(--font-sans);
   min-width: 320px;
-  background: #f0f4f8;
-  color: #1a2535;
+  background: #09090b;
+  color: #f4f4f5;
 }
 
 .safe-screen-padding {
@@ -169,4 +170,151 @@ textarea:focus-visible {
 
 .animate-blink-alert {
   animation: blink-alert 1s infinite;
+}
+
+/* PHCLIENT visual layer: keeps the delivery flows intact while unifying the
+   existing Tailwind surfaces with the reference CRM's dark SaaS language. */
+.delivery-theme,
+main {
+  color: #f4f4f5;
+}
+
+main .bg-white,
+main .bg-slate-50,
+main .bg-slate-100 {
+  background-color: #111113 !important;
+}
+
+main .bg-slate-200 {
+  background-color: #27272a !important;
+}
+
+main .border-slate-100,
+main .border-slate-200,
+main .border-slate-300 {
+  border-color: #27272a !important;
+}
+
+main .text-slate-900,
+main .text-slate-800,
+main .text-slate-700 {
+  color: #f4f4f5 !important;
+}
+
+main .text-slate-600,
+main .text-slate-500,
+main .text-slate-400 {
+  color: #a1a1aa !important;
+}
+
+main .text-amber-500,
+main .text-amber-600 {
+  color: #34d399 !important;
+}
+
+main .bg-amber-500,
+main .bg-amber-600 {
+  background-color: #10b981 !important;
+}
+
+main input,
+main textarea,
+main select {
+  background-color: #18181b !important;
+  border-color: #27272a !important;
+  color: #f4f4f5 !important;
+}
+
+main input::placeholder,
+main textarea::placeholder {
+  color: #71717a !important;
+}
+
+main button:not([class*="bg-"]):hover,
+main a:hover {
+  border-color: #10b981;
+}
+
+main .shadow-sm,
+main .shadow-md,
+main .shadow-lg {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .18) !important;
+}
+
+@media (max-width: 1023px) {
+  body { background: #09090b; }
+}
+
+/* Cashier-specific refinement: preserve all operational controls while
+   turning the high-density screen into the reference dashboard style. */
+.cashier-page [style*="#e0f7f1"],
+.cashier-page [style*="#fff0ed"],
+.cashier-page [style*="#e6f9f5"],
+.cashier-page [style*="#d5f5ee"],
+.cashier-page [style*="#e8f5e9"],
+.cashier-page [style*="#fff8e1"],
+.cashier-page [style*="#e8f4fd"],
+.cashier-page [style*="#f5f0ff"] {
+  background: #111113 !important;
+  border-color: #27272a !important;
+}
+
+.cashier-page [style*="rgba(255,255,255"],
+.cashier-page [style*="#fff"],
+.cashier-page .bg-white,
+.cashier-page .bg-slate-50 {
+  background: #111113 !important;
+  border-color: #27272a !important;
+}
+
+.delivery-light main {
+  background: #f4f4f5 !important;
+  color: #18181b;
+}
+
+.delivery-light main .bg-white,
+.delivery-light main .bg-slate-50,
+.delivery-light main .bg-slate-100,
+.delivery-light .cashier-page [style*="rgba(255,255,255"] {
+  background-color: #ffffff !important;
+}
+
+.delivery-light main .border-slate-100,
+.delivery-light main .border-slate-200,
+.delivery-light main .border-slate-300 {
+  border-color: #e4e4e7 !important;
+}
+
+.delivery-light main .text-slate-900,
+.delivery-light main .text-slate-800,
+.delivery-light main .text-slate-700 {
+  color: #18181b !important;
+}
+
+.delivery-light main .text-slate-600,
+.delivery-light main .text-slate-500,
+.delivery-light main .text-slate-400 {
+  color: #71717a !important;
+}
+
+.cashier-page [style*="#0d5e4f"],
+.cashier-page [style*="#0d7c67"],
+.cashier-page [style*="#1565c0"],
+.cashier-page [style*="#2e7d32"],
+.cashier-page [style*="#6a1b9a"],
+.cashier-page [style*="#f57f17"] {
+  color: #6ee7b7 !important;
+}
+
+.cashier-page > div:first-child {
+  border-radius: 12px !important;
+}
+
+.cashier-page .grid.grid-cols-3 {
+  gap: 12px;
+}
+
+.cashier-page .rounded-\[22px\],
+.cashier-page .rounded-\[24px\] {
+  border-radius: 12px !important;
 }

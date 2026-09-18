@@ -230,6 +230,7 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
 
   return (
     <Layout title={title}>
+      <div className="cashier-page">
       {/* ── Status Banner ── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -715,6 +716,7 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
           </button>
         </div>
       </Modal>
+        </div>
     </Layout>
   )
 }
