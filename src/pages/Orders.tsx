@@ -56,7 +56,7 @@ export default function Orders() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [tableOrAddress, setTableOrAddress] = useState('')
   const [isDelivery, setIsDelivery] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Insert']['payment_method']>('pix')
+  const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Insert']['payment_method']>('dinheiro')
   const [submitting, setSubmitting] = useState(false)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [pixPayment, setPixPayment] = useState<PixPayment | null>(null)

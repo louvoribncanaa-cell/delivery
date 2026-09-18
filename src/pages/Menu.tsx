@@ -40,7 +40,7 @@ export default function Menu() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [fulfillment, setFulfillment] = useState<'retirada' | 'entrega'>('retirada')
   const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Row']['payment_method']>('pix')
+  const [paymentMethod, setPaymentMethod] = useState<Database['public']['Tables']['orders']['Row']['payment_method']>('dinheiro')
   const [submitting, setSubmitting] = useState(false)
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false)
   const clientOrderIdRef = useRef<string | null>(null)
