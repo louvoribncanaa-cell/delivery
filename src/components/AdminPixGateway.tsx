@@ -103,17 +103,23 @@ export default function AdminPixGateway() {
 
     setTesting(true)
     try {
-      const response = await fetch('https://api.mercadopago.com/v1/payment_methods', {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const response = await fetch(`${supabaseUrl}/functions/v1/test-mp-connection`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${form.access_token.trim()}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${supabaseKey}`,
         },
+        body: JSON.stringify({ access_token: form.access_token.trim() }),
       })
 
-      if (response.ok) {
+      const data = await response.json()
+
+      if (data.ok) {
         toast.success('Conexão com Mercado Pago OK!')
       } else {
-        const data = await response.json()
-        toast.error(`Erro: ${data.message || response.statusText}`)
+        toast.error(`Erro: ${data.message || 'Token inválido'}`)
       }
     } catch {
       toast.error('Falha ao conectar com Mercado Pago')
