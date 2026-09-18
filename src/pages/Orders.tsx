@@ -606,10 +606,10 @@ export default function Orders() {
                         <p className="mb-2 text-sm font-semibold text-slate-700">Forma de pagamento</p>
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            { value: 'pix', label: 'Pix', icon: '⚡' },
-                            { value: 'cartao_credito', label: 'Cartão Crédito', icon: '💳' },
-                            { value: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
                             { value: 'dinheiro', label: 'Dinheiro', icon: '💵' },
+                            { value: 'pix', label: 'Pix', icon: '⚡' },
+                            { value: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
+                            { value: 'cartao_credito', label: 'Cartão Crédito', icon: '💳' },
                           ].map((method) => (
                             <button
                               key={method.value}

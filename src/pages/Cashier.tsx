@@ -653,7 +653,7 @@ export default function Cashier({ dailyOnly = false, title = 'Caixa' }: { dailyO
           </select>
           <input type="number" min="1" value={directQuantity} onChange={(event) => setDirectQuantity(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm" placeholder="Quantidade" />
           <div className="grid grid-cols-2 gap-2">
-            {(['dinheiro', 'pix', 'cartao_credito', 'cartao_debito'] as const).map((method) => <button key={method} onClick={() => setDirectPayment(method)} className={cn('min-h-11 rounded-xl border px-2 text-xs font-bold', directPayment === method ? 'border-[#14917a] bg-[#e9faf6] text-[#0d7c67]' : 'border-slate-200 bg-white text-slate-500')}>{getPaymentMethodLabel(method)}</button>)}
+            {(['dinheiro', 'pix', 'cartao_debito', 'cartao_credito'] as const).map((method) => <button key={method} onClick={() => setDirectPayment(method)} className={cn('min-h-11 rounded-xl border px-2 text-xs font-bold', directPayment === method ? 'border-[#14917a] bg-[#e9faf6] text-[#0d7c67]' : 'border-slate-200 bg-white text-slate-500')}>{getPaymentMethodLabel(method)}</button>)}
           </div>
           <button onClick={registerDirectSale} disabled={directSaving} className="flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#14917a] font-bold text-white disabled:opacity-60">{directSaving ? 'Registrando...' : 'Registrar saída'}</button>
         </div>

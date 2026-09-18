@@ -820,10 +820,10 @@ export default function Menu() {
                   <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Forma de pagamento</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                       { value: 'pix', label: 'Pix', icon: QrCode },
-                       { value: 'cartao_credito', label: 'Cartão Crédito', icon: CreditCard },
-                       { value: 'cartao_debito', label: 'Cartão Débito', icon: CreditCard },
                        { value: 'dinheiro', label: 'Dinheiro', icon: Banknote },
+                       { value: 'pix', label: 'Pix', icon: QrCode },
+                       { value: 'cartao_debito', label: 'Cartão Débito', icon: CreditCard },
+                       { value: 'cartao_credito', label: 'Cartão Crédito', icon: CreditCard },
                     ].map((method) => (
                       <button
                         key={method.value}
