@@ -252,7 +252,7 @@ export default function Layout({ children, title }: LayoutProps) {
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-400" />
                 <input
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/80 pl-13 pr-4 text-[14px] text-slate-700 placeholder:text-slate-400 outline-none transition-all focus:border-[#14917a] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,145,130,0.1)]"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/80 pl-14 pr-4 text-[14px] text-slate-700 placeholder:text-slate-400 outline-none transition-all focus:border-[#14917a] focus:bg-white focus:shadow-[0_0_0_3px_rgba(20,145,130,0.1)]"
                   placeholder="Buscar produtos ou pedidos..."
                 />
               </div>
