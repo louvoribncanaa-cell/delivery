@@ -174,7 +174,7 @@ export default function MyOrders() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por cliente ou nº do pedido..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-11 pr-3 text-sm focus:outline-none focus:border-amber-500"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-13 pr-3 text-sm focus:outline-none focus:border-amber-500"
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
